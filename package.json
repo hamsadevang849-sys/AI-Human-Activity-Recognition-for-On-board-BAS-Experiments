@@ -1,0 +1,24 @@
+{
+  "name": "ai-har-onboard-bas",
+  "version": "1.0.0",
+  "description": "AI Human Activity Recognition for On-board BAS Experiments",
+  "main": "index.html",
+  "scripts": {
+    "start": "python run.py",
+    "serve": "uvicorn backend.app:app --host 127.0.0.1 --port 8080",
+    "dev": "python run.py"
+  },
+  "keywords": [
+    "ai",
+    "har",
+    "human-activity-recognition",
+    "edge-ai",
+    "space-station",
+    "bas-experiments",
+    "computer-vision",
+    "threejs",
+    "fastapi"
+  ],
+  "author": "hamsadevang849",
+  "license": "ISC"
+}

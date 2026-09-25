@@ -1,0 +1,3635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Human Activity Recognition for On-board BAS Experiments</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #02070d;
+      --bg-surface: #050f18;
+      --bg-elevated: #091724;
+      --panel: rgba(7, 18, 30, 0.78);
+      --panel-strong: rgba(10, 24, 38, 0.94);
+      --panel-border: rgba(140, 236, 255, 0.18);
+      --panel-border-bright: rgba(140, 236, 255, 0.45);
+      --text: #edf6fc;
+      --text-muted: #879ca8;
+      --text-dim: #546a78;
+      --cyan: #8cecff;
+      --cyan-glow: rgba(140, 236, 255, 0.35);
+      --blue: #4fa8ff;
+      --green: #8cecc1;
+      --green-glow: rgba(140, 236, 193, 0.35);
+      --amber: #ffbe6b;
+      --red: #ff5f7e;
+      --line: rgba(255, 255, 255, 0.08);
+      --max: 1260px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    ::selection {
+      background: rgba(140, 236, 255, 0.3);
+      color: #fff;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    /* ---------------- BACKGROUND THREE.JS CANVAS & HUD ---------------- */
+    #spaceBackgroundCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      display: block;
+    }
+
+    .cinematic-vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 45%, rgba(2, 7, 13, 0.6) 80%, rgba(1, 4, 8, 0.95) 100%),
+        linear-gradient(180deg, rgba(2, 7, 13, 0.65) 0%, transparent 20%, transparent 80%, rgba(2, 7, 13, 0.95) 100%);
+    }
+
+    .tactical-grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.12) 0px,
+        rgba(0, 0, 0, 0.12) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      opacity: 0.55;
+    }
+
+    /* ---------------- HUD RETICLE FRAME ---------------- */
+    .hud-frame {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .corner-bracket {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-color: rgba(140, 236, 255, 0.3);
+    }
+    .corner-bracket.tl { top: 18px; left: 18px; border-top: 2px solid; border-left: 2px solid; }
+    .corner-bracket.tr { top: 18px; right: 18px; border-top: 2px solid; border-right: 2px solid; }
+    .corner-bracket.bl { bottom: 18px; left: 18px; border-bottom: 2px solid; border-left: 2px solid; }
+    .corner-bracket.br { bottom: 18px; right: 18px; border-bottom: 2px solid; border-right: 2px solid; }
+
+    /* ---------------- SYSTEM INITIALIZATION INTRO SEQUENCE ---------------- */
+    #systemIntroShutter {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: #010408;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    #systemIntroShutter.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .intro-terminal-card {
+      width: min(720px, 92vw);
+      background: rgba(6, 16, 26, 0.95);
+      border: 1px solid var(--panel-border-bright);
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(140, 236, 255, 0.15);
+      border-radius: 14px;
+      padding: 34px 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .intro-terminal-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    }
+
+    .intro-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+    }
+
+    .intro-header-bar .live-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+    }
+
+    .intro-title-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(26px, 4vw, 42px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .intro-title-text span {
+      color: var(--cyan);
+    }
+
+    .intro-ai-dialogue {
+      min-height: 84px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(14px, 1.8vw, 17px);
+      line-height: 1.7;
+      color: #d8e8f2;
+      border-left: 2px solid var(--cyan);
+      padding-left: 18px;
+      margin-bottom: 24px;
+    }
+
+    .intro-waveform-wrap {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .wave-bars {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 24px;
+    }
+
+    .wave-bars span {
+      width: 3px;
+      height: 6px;
+      background: var(--cyan);
+      border-radius: 2px;
+      animation: pulse-wave 1s infinite ease-in-out alternate;
+    }
+
+    .wave-bars span:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bars span:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bars span:nth-child(4) { animation-delay: 0.45s; }
+    .wave-bars span:nth-child(5) { animation-delay: 0.6s; }
+    .wave-bars span:nth-child(6) { animation-delay: 0.25s; }
+    .wave-bars span:nth-child(7) { animation-delay: 0.4s; }
+
+    @keyframes pulse-wave {
+      0% { height: 4px; opacity: 0.3; }
+      100% { height: 22px; opacity: 1; box-shadow: 0 0 10px var(--cyan); }
+    }
+
+    .intro-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .btn-skip-intro {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      padding: 10px 20px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .btn-skip-intro:hover {
+      border-color: #fff;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-enter-mission {
+      background: var(--cyan);
+      border: 1px solid var(--cyan);
+      color: #02070d;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 12px 26px;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(140, 236, 255, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    .btn-enter-mission:hover {
+      background: #fff;
+      border-color: #fff;
+      box-shadow: 0 0 35px #fff;
+      transform: translateY(-1px);
+    }
+
+    /* ---------------- NAVIGATION ---------------- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4vw;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(2, 7, 13, 0.55);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.04em;
+      color: #fff;
+    }
+
+    .brand-logo-text span {
+      color: var(--cyan);
+    }
+
+    .badge-edge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(140, 236, 255, 0.1);
+      border: 1px solid rgba(140, 236, 255, 0.3);
+      color: var(--cyan);
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      list-style: none;
+    }
+
+    .nav-menu a {
+      color: #93a8b5;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      transition: color 0.25s ease;
+      position: relative;
+    }
+
+    .nav-menu a:hover,
+    .nav-menu a.active {
+      color: #fff;
+    }
+
+    .nav-menu a:hover::after,
+    .nav-menu a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .audio-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      border-radius: 30px;
+      padding: 6px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+    }
+
+    .audio-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+    }
+
+    .audio-btn.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(140, 236, 255, 0.08);
+      box-shadow: 0 0 14px rgba(140, 236, 255, 0.2);
+    }
+
+    .nav-standalone-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--green);
+      text-transform: uppercase;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+      animation: pulse-dot 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.5; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.25); box-shadow: 0 0 14px var(--green); }
+    }
+
+    /* ---------------- SECTION ARCHITECTURE ---------------- */
+    .page-wrapper {
+      position: relative;
+      z-index: 10;
+    }
+
+    .section-container {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 120px 4vw 80px;
+      position: relative;
+    }
+
+    .section-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-eyebrow::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--cyan);
+    }
+
+    h2.section-heading {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(34px, 4.5vw, 64px);
+      line-height: 1.02;
+      letter-spacing: -0.05em;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    h2.section-heading span.dim {
+      color: var(--text-dim);
+    }
+
+    p.section-lead {
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1.8;
+      max-width: 680px;
+      margin-top: 18px;
+    }
+
+    .card-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(140, 236, 255, 0.4), transparent);
+    }
+
+    /* ---------------- DEMO DISCLAIMER BADGE ---------------- */
+    .demo-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255, 190, 107, 0.1);
+      border: 1px solid rgba(255, 190, 107, 0.35);
+      color: var(--amber);
+      text-transform: uppercase;
+    }
+
+    .real-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(140, 236, 193, 0.1);
+      border: 1px solid rgba(140, 236, 193, 0.35);
+      color: var(--green);
+      text-transform: uppercase;
+    }
+
+    /* ---------------- HERO SECTION ---------------- */
+    .hero-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding: 130px 4vw 80px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 50px;
+      align-items: center;
+      max-width: var(--max);
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    h1.hero-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(42px, 5.8vw, 84px);
+      line-height: 0.94;
+      letter-spacing: -0.06em;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    h1.hero-title span.accent {
+      color: var(--cyan);
+    }
+
+    .hero-lead {
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1.75;
+      max-width: 560px;
+      margin-top: 24px;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 36px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #030a10;
+      border: 1px solid #ffffff;
+      padding: 14px 28px;
+      border-radius: 40px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.25);
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-primary:hover {
+      background: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 35px var(--cyan);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 14px 24px;
+      border-radius: 40px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* ---------------- HERO TELEMETRY HUD CARD ---------------- */
+    .hero-telemetry-card {
+      padding: 26px;
+      background: var(--panel-strong);
+      border: 1px solid var(--panel-border-bright);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 30px rgba(140, 236, 255, 0.1);
+    }
+
+    .telemetry-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+    }
+
+    .telemetry-status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .tele-cell {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .tele-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .tele-val {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    .tele-val.accent {
+      color: var(--cyan);
+    }
+    .tele-val.green {
+      color: var(--green);
+    }
+
+    /* Simulated Fixed-Payload Camera Viewfinder */
+    .camera-hud-preview {
+      position: relative;
+      height: 180px;
+      background: radial-gradient(circle at center, #071927 0%, #030a11 85%);
+      border: 1px solid rgba(140, 236, 255, 0.25);
+      border-radius: 8px;
+      margin-top: 18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px;
+    }
+
+    .camera-hud-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      border: 1px dashed rgba(140, 236, 255, 0.35);
+      border-radius: 50%;
+    }
+
+    .camera-hud-crosshair::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -12px;
+      width: 84px;
+      height: 1px;
+      background: rgba(140, 236, 255, 0.4);
+    }
+
+    .camera-hud-crosshair::after {
+      content: '';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      width: 1px;
+      height: 84px;
+      background: rgba(140, 236, 255, 0.4);
+    }
+
+    .cam-box-tracker {
+      position: absolute;
+      top: 32%;
+      left: 42%;
+      width: 90px;
+      height: 80px;
+      border: 1px solid var(--green);
+      background: rgba(140, 236, 193, 0.08);
+      border-radius: 4px;
+      box-shadow: 0 0 15px rgba(140, 236, 193, 0.2);
+    }
+
+    .cam-box-tracker span {
+      position: absolute;
+      top: -14px;
+      left: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      color: var(--green);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 1px 4px;
+      white-space: nowrap;
+    }
+
+    /* ---------------- SECTION 01: HOW IT WORKS / PIPELINE ---------------- */
+    .pipeline-diagram {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-top: 40px;
+    }
+
+    .pipe-step-card {
+      background: rgba(7, 18, 30, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 16px 14px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 140px;
+      transition: all 0.25s ease;
+    }
+
+    .pipe-step-card:hover {
+      border-color: var(--cyan);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(140, 236, 255, 0.1);
+    }
+
+    .pipe-step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--cyan);
+      letter-spacing: 0.15em;
+    }
+
+    .pipe-step-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      margin-top: 10px;
+    }
+
+    .pipe-step-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+
+    /* ---------------- SECTION 02: EXPERIMENT SIMULATION & SEQUENCE VALIDATION ---------------- */
+    .experiment-suite-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    .protocol-step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .proto-step-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .proto-step-item:hover,
+    .proto-step-item.active {
+      background: rgba(140, 236, 255, 0.07);
+      border-color: var(--cyan);
+      box-shadow: 0 0 20px rgba(140, 236, 255, 0.1);
+    }
+
+    .proto-step-item.skipped {
+      border-color: var(--amber);
+      background: rgba(255, 190, 107, 0.08);
+    }
+
+    .proto-step-item.deviation {
+      border-color: var(--red);
+      background: rgba(255, 95, 126, 0.08);
+    }
+
+    .proto-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .proto-index {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--cyan);
+      font-weight: 700;
+      width: 28px;
+    }
+
+    .proto-text h4 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .proto-text span {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .proto-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+    }
+
+    .proto-badge.validated {
+      background: rgba(140, 236, 193, 0.12);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .proto-badge.alert-skip {
+      background: rgba(255, 190, 107, 0.15);
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .proto-badge.alert-dev {
+      background: rgba(255, 95, 126, 0.15);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* Simulation Control Buttons */
+    .sim-controls-panel {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn-sim {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-sim.nominal {
+      background: rgba(140, 236, 193, 0.1);
+      border: 1px solid var(--green);
+      color: var(--green);
+    }
+
+    .btn-sim.nominal:hover {
+      background: var(--green);
+      color: #02070d;
+    }
+
+    .btn-sim.skip {
+      background: rgba(255, 190, 107, 0.1);
+      border: 1px solid var(--amber);
+      color: var(--amber);
+    }
+
+    .btn-sim.skip:hover {
+      background: var(--amber);
+      color: #02070d;
+    }
+
+    .btn-sim.outofseq {
+      background: rgba(255, 95, 126, 0.1);
+      border: 1px solid var(--red);
+      color: var(--red);
+    }
+
+    .btn-sim.outofseq:hover {
+      background: var(--red);
+      color: #02070d;
+    }
+
+    /* Step Inspector Card */
+    .step-inspector-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .inspector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    .inspector-rows {
+      display: grid;
+      gap: 14px;
+    }
+
+    .inspector-row {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .inspector-row .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .inspector-row .value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    /* Next Recommended Step Card */
+    .next-step-recommendation-box {
+      margin-top: 20px;
+      padding: 18px;
+      background: rgba(140, 236, 255, 0.06);
+      border: 1px solid var(--cyan);
+      border-radius: 10px;
+      box-shadow: 0 0 25px rgba(140, 236, 255, 0.1);
+    }
+
+    .next-step-recommendation-box .rec-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .next-step-recommendation-box .rec-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 6px;
+    }
+
+    /* ---------------- SECTION 03: VOICE ASSISTANT INTERFACE ---------------- */
+    .voice-assistant-card {
+      margin-top: 30px;
+      padding: 24px;
+      border: 1px solid var(--panel-border-bright);
+      background: rgba(5, 14, 23, 0.9);
+      border-radius: 14px;
+    }
+
+    .voice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .voice-console-body {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      align-items: center;
+      padding: 18px 20px;
+      background: rgba(2, 7, 13, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+    }
+
+    .speaker-indicator {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(140, 236, 255, 0.1);
+      border: 1px solid var(--cyan);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      color: var(--cyan);
+      box-shadow: 0 0 18px rgba(140, 236, 255, 0.25);
+    }
+
+    .voice-speech-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 17px;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .voice-speech-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      letter-spacing: 0.1em;
+    }
+
+    /* ---------------- SECTION 04: STRUCTURED TEXT LOG & EXPORT ---------------- */
+    .log-suite-panel {
+      margin-top: 40px;
+      padding: 26px;
+    }
+
+    .log-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .log-terminal-output {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: #02060b;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 18px;
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .log-line {
+      display: grid;
+      grid-template-columns: 85px 75px 1fr 110px;
+      gap: 14px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .log-line:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .log-line .timestamp { color: var(--text-dim); }
+    .log-line .step-no { color: var(--cyan); font-weight: 600; }
+    .log-line .desc { color: #d8e8f2; }
+    .log-line .status-pill {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .log-line .status-pill.valid { color: var(--green); }
+    .log-line .status-pill.alert { color: var(--amber); }
+    .log-line .status-pill.error { color: var(--red); }
+
+    /* ---------------- SECTION 05: DATASET GENERATION LAB ---------------- */
+    .dataset-pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+      margin-top: 40px;
+    }
+
+    .dataset-node {
+      background: rgba(7, 18, 30, 0.8);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 16px 12px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .dataset-node:hover,
+    .dataset-node.active {
+      border-color: var(--cyan);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(140, 236, 255, 0.15);
+    }
+
+    .dataset-node .node-idx {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--cyan);
+    }
+
+    .dataset-node h4 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      color: #fff;
+      margin-top: 8px;
+    }
+
+    .dataset-node p {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    /* Interactive Dataset Annotation Simulator Canvas Box */
+    .dataset-simulator-wrap {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 28px;
+      margin-top: 30px;
+    }
+
+    .dataset-canvas-box {
+      position: relative;
+      height: 380px;
+      background: #02070e;
+      border: 1px solid var(--panel-border-bright);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    #datasetCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .dataset-controls-box {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .annotation-toggles {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .annot-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .annot-toggle-row input[type="checkbox"] {
+      accent-color: var(--cyan);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* ---------------- SECTION 06: OPTIONAL ORIENTATION-AGNOSTIC 3D HMR ---------------- */
+    .hmr-special-card {
+      border: 1px solid var(--panel-border-bright);
+      background: linear-gradient(180deg, rgba(8, 22, 36, 0.9) 0%, rgba(4, 12, 20, 0.95) 100%);
+      border-radius: 16px;
+      padding: 34px;
+      margin-top: 40px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(140, 236, 255, 0.2);
+    }
+
+    .hmr-top-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .hmr-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .hmr-3d-viewport {
+      position: relative;
+      height: 420px;
+      background: radial-gradient(circle at center, #071724 0%, #01060a 85%);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    #hmrThreeCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hmr-viewport-hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--cyan);
+      background: rgba(2, 6, 12, 0.75);
+      border: 1px solid rgba(140, 236, 255, 0.25);
+      padding: 6px 10px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .hmr-interactive-controls {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hmr-slider-group label {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .hmr-slider-group input[type="range"] {
+      width: 100%;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    /* ---------------- SECTION 07: STANDALONE EDGE AI ARCHITECTURE ---------------- */
+    .edge-arch-visual {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    .edge-flow-box {
+      padding: 28px;
+    }
+
+    .edge-pipeline-diagram {
+      display: grid;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .edge-pipe-node {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+    }
+
+    .edge-pipe-node .node-glyph {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(140, 236, 255, 0.1);
+      border: 1px solid var(--cyan);
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      color: var(--cyan);
+    }
+
+    .edge-pipe-node h5 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .edge-pipe-node span {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .ground-comm-side-card {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-color: rgba(255, 190, 107, 0.35);
+      background: rgba(14, 18, 22, 0.85);
+    }
+
+    /* ---------------- SECTION 08: MISSION MONITORING DASHBOARD (GUI) ---------------- */
+    .dashboard-shell {
+      border: 1px solid var(--panel-border-bright);
+      background: rgba(4, 12, 20, 0.95);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+      margin-top: 40px;
+    }
+
+    .dashboard-top-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dash-status-item {
+      display: flex;
+      flex-direction: column;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+    }
+
+    .dash-status-item .s-label { color: var(--text-dim); text-transform: uppercase; }
+    .dash-status-item .s-val { font-size: 13px; font-weight: 700; color: #fff; margin-top: 3px; }
+    .dash-status-item .s-val.green { color: var(--green); }
+    .dash-status-item .s-val.cyan { color: var(--cyan); }
+    .dash-status-item .s-val.amber { color: var(--amber); }
+
+    .dashboard-body-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    /* Video Feed Screen */
+    .live-camera-feed-card {
+      background: #02060b;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      height: 380px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+    }
+
+    #feedSimulationCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+    }
+
+    .feed-overlay-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .feed-overlay-footer {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: #9cb5c4;
+      background: rgba(1, 5, 10, 0.7);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(140, 236, 255, 0.15);
+    }
+
+    /* Transmission & Storage Panels */
+    .dash-side-panels {
+      display: grid;
+      gap: 20px;
+    }
+
+    .ip-streaming-box {
+      padding: 20px;
+      background: rgba(7, 18, 30, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+    }
+
+    .ip-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .ip-input-row input {
+      flex: 1;
+      background: #02070e;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .local-storage-box {
+      padding: 20px;
+      background: rgba(7, 18, 30, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+    }
+
+    .storage-meter {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
+
+    .storage-meter span {
+      display: block;
+      height: 100%;
+      width: 42%;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    /* ---------------- SECTION 09: ABOUT THE SYSTEM ---------------- */
+    .about-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 36px;
+    }
+
+    .capability-card {
+      padding: 22px 20px;
+      background: rgba(7, 18, 30, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+    }
+
+    .capability-card .cap-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--cyan);
+      margin-bottom: 12px;
+    }
+
+    .capability-card h4 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .capability-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ---------------- SECTION 10: FINAL CTA & FOOTER ---------------- */
+    .final-cta-panel {
+      text-align: center;
+      padding: 80px 4vw;
+      background: linear-gradient(180deg, transparent, rgba(6, 17, 28, 0.85) 100%);
+      border-top: 1px solid var(--line);
+    }
+
+    .final-cta-panel h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(38px, 5.5vw, 76px);
+      letter-spacing: -0.06em;
+      line-height: 1.0;
+      color: #fff;
+    }
+
+    .final-cta-panel h2 span {
+      color: var(--cyan);
+    }
+
+    .final-cta-panel p {
+      color: var(--text-muted);
+      font-size: 17px;
+      margin-top: 18px;
+    }
+
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 40px 4vw;
+      background: #010408;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .footer-left strong {
+      display: block;
+      color: #fff;
+      font-size: 13px;
+      font-family: 'Space Grotesk', sans-serif;
+      margin-bottom: 4px;
+    }
+
+    /* ---------------- RESPONSIVE MEDIA QUERIES ---------------- */
+    @media (max-width: 1024px) {
+      .hero-grid,
+      .experiment-suite-grid,
+      .dataset-simulator-wrap,
+      .hmr-grid,
+      .edge-arch-visual,
+      .dashboard-body-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pipeline-diagram,
+      .dataset-pipeline-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .about-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-menu {
+        display: none;
+      }
+
+      .pipeline-diagram,
+      .dataset-pipeline-grid,
+      .about-cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-top-status-bar {
+        gap: 12px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+
+  <!-- Load Local Three.js with fallback to CDN -->
+  <script src="three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. 3D WEBGL FULLSCREEN SPACE SCENE
+       ========================================================================= -->
+  <canvas id="spaceBackgroundCanvas"></canvas>
+  <div class="cinematic-vignette"></div>
+  <div class="tactical-grid-overlay"></div>
+
+  <!-- HUD Corner Brackets -->
+  <div class="hud-frame">
+    <div class="corner-bracket tl"></div>
+    <div class="corner-bracket tr"></div>
+    <div class="corner-bracket bl"></div>
+    <div class="corner-bracket br"></div>
+  </div>
+
+  <!-- =========================================================================
+       2. CINEMATIC AI INITIALIZATION / SELF-INTRODUCTION OVERLAY (SECTION 12)
+       ========================================================================= -->
+  <div id="systemIntroShutter">
+    <div class="intro-terminal-card">
+      <div class="intro-header-bar">
+        <span>ON-BOARD EXPERIMENT INTELLIGENCE // INITIALIZING</span>
+        <div class="live-status">
+          <span class="pulse-dot"></span>
+          <span id="introStatusText">SYSTEM WAKING UP...</span>
+        </div>
+      </div>
+
+      <div class="intro-title-text">
+        AI Human Activity Recognition<br>
+        <span>for On-board BAS Experiments</span>
+      </div>
+
+      <div class="intro-ai-dialogue" id="introDialogueText">
+        "Initializing on-board neural runtime..."
+      </div>
+
+      <div class="intro-waveform-wrap">
+        <div class="wave-bars">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--cyan); letter-spacing:0.18em;" id="introVoicePrompt">
+          AI ASSISTANT INTRODUCING MISSION PROTOCOL...
+        </span>
+      </div>
+
+      <div class="intro-footer-actions">
+        <button class="btn-skip-intro" id="btnSkipIntro">SKIP INTRODUCTION [ESC]</button>
+        <button class="btn-enter-mission" id="btnEnterMissionDirect">ENTER MISSION SYSTEM ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       3. NAVIGATION BAR (SECTION 23)
+       ========================================================================= -->
+  <nav>
+    <div class="nav-brand">
+      <a href="#mission" class="brand-logo-text">ORBITAL<span>/BAS-HAR</span></a>
+      <span class="badge-edge">EDGE AI ASSISTANT</span>
+    </div>
+
+    <ul class="nav-menu">
+      <li><a href="#mission" class="active">Mission</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#pipeline">AI Pipeline</a></li>
+      <li><a href="#experiment">Experiment</a></li>
+      <li><a href="#dataset">Dataset</a></li>
+      <li><a href="#edge-ai">Edge AI</a></li>
+      <li><a href="#hmr">3D HMR</a></li>
+      <li><a href="#monitor">Monitor</a></li>
+      <li><a href="#about">About</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button class="audio-btn" id="audioMasterBtn" title="Toggle Synthesized Space Audio">
+        <span>🔊</span>
+        <span id="audioLabel">AUDIO: MUTED</span>
+      </button>
+
+      <div class="nav-standalone-tag">
+        <span class="pulse-dot"></span>
+        STANDALONE / NO CLOUD
+      </div>
+    </div>
+  </nav>
+
+  <!-- =========================================================================
+       4. PAGE CONTENT WRAPPER
+       ========================================================================= -->
+  <div class="page-wrapper">
+
+    <!-- =====================================================================
+         HERO SECTION (SECTION 13)
+         ===================================================================== -->
+    <section class="hero-section" id="mission">
+      <div class="hero-grid">
+        <div>
+          <div class="section-eyebrow">
+            BAS & LUNAR SCIENCE SUPPORT // STANDALONE EDGE AI
+          </div>
+
+          <h1 class="hero-title">
+            AI Human Activity Recognition<br>
+            for <span class="accent">On-board BAS Experiments</span>
+          </h1>
+
+          <p class="hero-lead">
+            An autonomous on-board assistant designed to support astronauts during mission-critical scientific experiments in space. By tracking astronaut movements and validating predefined protocols locally at the edge, HAR ensures science succeeds beyond Earth's orbit without communication delays.
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="#monitor" class="btn-primary">
+              ENTER MISSION SYSTEM ▶
+            </a>
+            <a href="#how-it-works" class="btn-secondary">
+              EXPLORE HOW IT WORKS
+            </a>
+            <button class="btn-secondary" id="btnReplayIntro" style="padding:14px 18px;" title="Replay AI Assistant Wake-up Introduction">
+              ↺ REPLAY INTRO
+            </button>
+          </div>
+        </div>
+
+        <!-- Aerospace HUD Telemetry Card -->
+        <div class="card-panel hero-telemetry-card">
+          <div class="telemetry-card-top">
+            <div>
+              <span class="demo-tag">SIMULATION TELEMETRY</span>
+              <div style="font-family:'Space Grotesk'; font-size:16px; font-weight:700; color:#fff; margin-top:4px;">
+                BAS EXPERIMENT ZONE 01
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span class="real-tag">STANDALONE AI</span>
+              <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--cyan); margin-top:4px;">
+                EDGE NODE ONLINE
+              </div>
+            </div>
+          </div>
+
+          <div class="telemetry-status-grid">
+            <div class="tele-cell">
+              <div class="tele-label">GROUND COMM DELAY</div>
+              <div class="tele-val accent" id="teleCommDelay">1.28s - 24m</div>
+            </div>
+            <div class="tele-cell">
+              <div class="tele-label">LOCAL EDGE INFERENCE</div>
+              <div class="tele-val green" id="teleInferenceSpeed">11.4 ms</div>
+            </div>
+            <div class="tele-cell">
+              <div class="tele-label">PAYLOAD CAMERA 01</div>
+              <div class="tele-val">ONLINE (1080p)</div>
+            </div>
+            <div class="tele-cell">
+              <div class="tele-label">EXPERIMENT PROTOCOL</div>
+              <div class="tele-val">BAS-EXP-04 ACTIVE</div>
+            </div>
+          </div>
+
+          <!-- Fixed-Payload Camera Simulated Viewfinder -->
+          <div class="camera-hud-preview">
+            <div class="camera-hud-crosshair"></div>
+            <div class="cam-box-tracker">
+              <span>ASTRONAUT_01 [98.2%]</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; z-index:2; font-family:'JetBrains Mono'; font-size:9px; color:var(--cyan);">
+              <span>FIXED_CAM_01 // 60 FPS</span>
+              <span>STANDALONE PROCESSING</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; z-index:2; font-family:'JetBrains Mono'; font-size:9px; color:#859ba8;">
+              <span>TARGET: SAMPLE RACK</span>
+              <span>ACTIVITY: RETRIEVE CONTAINER</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 01: HOW IT WORKS & CORE CHALLENGE (SECTIONS 1-3)
+         ===================================================================== -->
+    <section class="section-container" id="how-it-works">
+      <div class="section-eyebrow">
+        01 / CORE MISSION CHALLENGE
+      </div>
+
+      <h2 class="section-heading">
+        Why Space Experiments Demand<br>
+        <span class="dim">Autonomous On-board AI.</span>
+      </h2>
+
+      <p class="section-lead">
+        As humanity ventures to the BAS (Bharatiya Antariksh Station), the Moon, and beyond, real-time ground control assistance becomes impossible due to transmission light-delays and restricted communications bandwidth. The on-board HAR system observes astronaut actions through fixed-payload cameras, validates protocols locally, and provides instantaneous voice feedback.
+      </p>
+
+      <div class="pipeline-diagram">
+        <div class="pipe-step-card">
+          <div class="pipe-step-num">STAGE 01</div>
+          <div class="pipe-step-title">Astronaut Performs Experiment</div>
+          <div class="pipe-step-desc">Crew member conducts predefined scientific protocols in the microgravity rack.</div>
+        </div>
+
+        <div class="pipe-step-card">
+          <div class="pipe-step-num">STAGE 02</div>
+          <div class="pipe-step-title">Fixed-Payload Camera Observes</div>
+          <div class="pipe-step-desc">Continuous high-frame-rate video capture focused on the experiment workspace.</div>
+        </div>
+
+        <div class="pipe-step-card">
+          <div class="pipe-step-num">STAGE 03</div>
+          <div class="pipe-step-title">AI Processes Video Locally</div>
+          <div class="pipe-step-desc">Quantized neural inference executed completely offline at the edge node.</div>
+        </div>
+
+        <div class="pipe-step-card">
+          <div class="pipe-step-num">STAGE 04</div>
+          <div class="pipe-step-title">Human Activity Recognized</div>
+          <div class="pipe-step-desc">Simultaneous pose estimation, hand-object tracking, and action classification.</div>
+        </div>
+
+        <div class="pipe-step-card">
+          <div class="pipe-step-num">STAGE 05</div>
+          <div class="pipe-step-title">Sequence Validated</div>
+          <div class="pipe-step-desc">Deterministic comparison against predefined experiment state machine.</div>
+        </div>
+
+        <div class="pipe-step-card">
+          <div class="pipe-step-num">STAGE 06</div>
+          <div class="pipe-step-title">Voice Alert & Next Step</div>
+          <div class="pipe-step-desc">Instant audio guidance, next step suggestion, or skipped-step deviation warnings.</div>
+        </div>
+
+        <div class="pipe-step-card">
+          <div class="pipe-step-num">STAGE 07</div>
+          <div class="pipe-step-title">Structured Log & Storage</div>
+          <div class="pipe-step-desc">Timestamped lightweight text logging and local video archiving.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 02: EXPERIMENT SIMULATION & SEQUENCE VALIDATION (SECTIONS 8, 9, 10, 15, 16)
+         ===================================================================== -->
+    <section class="section-container" id="experiment">
+      <div class="section-eyebrow">
+        02 / EXPERIMENT SEQUENCE VALIDATION
+      </div>
+
+      <h2 class="section-heading">
+        Predefined Protocol Validation<br>
+        <span class="dim">& Deviation Detection.</span>
+      </h2>
+
+      <p class="section-lead">
+        Test the on-board assistant's deterministic sequence engine. Trigger nominal execution, simulate a skipped procedural step, or introduce an out-of-order deviation to observe how the AI recognizes errors and issues voice alerts in real time.
+      </p>
+
+      <!-- Simulation Action Triggers -->
+      <div class="sim-controls-panel">
+        <button class="btn-sim nominal" id="btnRunNominal">
+          ▶ RUN NOMINAL SEQUENCE (01 → 02 → 03 → 04 → 05)
+        </button>
+        <button class="btn-sim skip" id="btnSimulateSkip">
+          ⚠ SIMULATE SKIPPED STEP (01 → 02 → [03 SKIPPED] → 04)
+        </button>
+        <button class="btn-sim outofseq" id="btnSimulateOutOfOrder">
+          ⚠ SIMULATE OUT-OF-SEQUENCE STEP (01 → 04 UNEXPECTED)
+        </button>
+      </div>
+
+      <div class="experiment-suite-grid">
+        <!-- Interactive Protocol Step List -->
+        <div class="card-panel" style="padding: 24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-family:'Space Grotesk'; font-size:16px; font-weight:700;">
+              EXPERIMENT PROTOCOL: BAS-EXP-04
+            </div>
+            <span class="demo-tag">DEMO SEQUENCE DATA</span>
+          </div>
+
+          <div class="protocol-step-list" id="protocolStepList">
+            <!-- Dynamically populated steps -->
+          </div>
+        </div>
+
+        <!-- Selected Step Inspector Card -->
+        <div class="card-panel step-inspector-card">
+          <div>
+            <div class="inspector-header">
+              <div>
+                <span class="demo-tag">INSPECTOR HUD</span>
+                <h3 style="font-family:'Space Grotesk'; font-size:18px; margin-top:4px;" id="inspectStepTitle">
+                  Step 02 — Retrieve Sample Container
+                </h3>
+              </div>
+              <div id="inspectStatusBadge">
+                <span class="proto-badge validated">COMPLETED</span>
+              </div>
+            </div>
+
+            <div class="inspector-rows">
+              <div class="inspector-row">
+                <div class="label">EXPECTED ACTION</div>
+                <div class="value" id="inspectExpected">Retrieve biological sample container from storage bay</div>
+              </div>
+
+              <div class="inspector-row">
+                <div class="label">CURRENTLY DETECTED ACTION</div>
+                <div class="value" id="inspectDetected">Grip container latch & extract sample vessel</div>
+              </div>
+
+              <div class="inspector-row">
+                <div class="label">AI SEQUENCE VALIDATION STATUS</div>
+                <div class="value" id="inspectSeqStatus" style="color:var(--green);">Nominal Sequence Alignment</div>
+              </div>
+
+              <div class="inspector-row">
+                <div class="label">DEMO MODEL CONFIDENCE</div>
+                <div class="value" id="inspectConfidence">96.8% (DEMO CONFIDENCE)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Next Recommended Step Transition Box -->
+          <div class="next-step-recommendation-box" id="nextStepBox">
+            <div class="rec-tag">
+              <span class="pulse-dot"></span> NEXT RECOMMENDED STEP (AI GUIDANCE READY)
+            </div>
+            <div class="rec-title" id="nextStepTitle">
+              Step 03 — Place Sample on Payload Centrifuge Rack
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================================================================
+           VOICE ASSISTANT INTERFACE (SECTIONS 5, 21)
+           =================================================================== -->
+      <div class="voice-assistant-card">
+        <div class="voice-header">
+          <div>
+            <span class="demo-tag">DEMO VOICE SYSTEM (BROWSER SYNTHESIS)</span>
+            <div style="font-family:'Space Grotesk'; font-size:16px; font-weight:700; color:#fff; margin-top:4px;">
+              ON-BOARD AI VOICE ASSISTANT // REAL-TIME EXPERIMENT SUPERVISOR
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--green);">
+            ● VOICE SYSTEM READY
+          </div>
+        </div>
+
+        <div class="voice-console-body">
+          <div class="speaker-indicator">
+            <span>📢</span>
+          </div>
+
+          <div>
+            <div class="voice-speech-text" id="voiceUtteranceText">
+              "Ready for experiment sequence. Monitoring fixed-payload camera 01."
+            </div>
+            <div class="voice-speech-meta" id="voiceTimestampMeta">
+              STATUS: LISTENING // LAST VOCAL ALERT: INITIALIZED
+            </div>
+          </div>
+
+          <div>
+            <button class="btn-sim nominal" id="btnTestVoice" style="padding:8px 14px; font-size:10px;">
+              🔊 REPLAY AUDIO
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================================================================
+           STRUCTURED TEXT LOG & EXPORT (SECTION 6)
+           =================================================================== -->
+      <div class="card-panel log-suite-panel">
+        <div class="log-header-bar">
+          <div>
+            <span class="real-tag">STRUCTURED LIGHTWEIGHT LOG</span>
+            <div style="font-family:'Space Grotesk'; font-size:17px; font-weight:700; color:#fff; margin-top:4px;">
+              TIMESTAMPED EXPERIMENT AUDIT TRAIL
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button class="btn-secondary" id="btnExportLog" style="padding:10px 18px; font-size:11px;">
+              ⬇ EXPORT LOG (.TXT)
+            </button>
+          </div>
+        </div>
+
+        <div class="log-terminal-output" id="logTerminalOutput">
+          <!-- Dynamically populated timestamped log lines -->
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 03: DATASET GENERATION LAB (SECTIONS 5, 18)
+         ===================================================================== -->
+    <section class="section-container" id="dataset">
+      <div class="section-eyebrow">
+        03 / DATASET GENERATION LAB
+      </div>
+
+      <h2 class="section-heading">
+        Synthetic & Annotated Data<br>
+        <span class="dim">for Space HAR Training.</span>
+      </h2>
+
+      <p class="section-lead">
+        Training robust computer vision models for microgravity requires dedicated multi-modal annotation pipelines: bounding box object localization, 34-point full-body skeletal kinematics, and fine-grained hand-object interaction states.
+      </p>
+
+      <!-- Dataset Pipeline Stages -->
+      <div class="dataset-pipeline-grid">
+        <div class="dataset-node active" data-stage="0">
+          <div class="node-idx">01</div>
+          <h4>Raw Experiment Video</h4>
+          <p>Multi-spectral camera captures inside rack.</p>
+        </div>
+
+        <div class="dataset-node" data-stage="1">
+          <div class="node-idx">02</div>
+          <h4>Frame Extraction</h4>
+          <p>Temporal sampling at 30 fps keyframe intervals.</p>
+        </div>
+
+        <div class="dataset-node" data-stage="2">
+          <div class="node-idx">03</div>
+          <h4>Object Labels</h4>
+          <p>Sample vials, pipettes, switches, centrifuge.</p>
+        </div>
+
+        <div class="dataset-node" data-stage="3">
+          <div class="node-idx">04</div>
+          <h4>Pose Keypoints</h4>
+          <p>34 joint coordinates with confidence heatmaps.</p>
+        </div>
+
+        <div class="dataset-node" data-stage="4">
+          <div class="node-idx">05</div>
+          <h4>Hand-Object Interaction</h4>
+          <p>Grip states, pinch contact, tool manipulation.</p>
+        </div>
+
+        <div class="dataset-node" data-stage="5">
+          <div class="node-idx">06</div>
+          <h4>Activity Labels</h4>
+          <p>Temporal boundary segment classification.</p>
+        </div>
+
+        <div class="dataset-node" data-stage="6">
+          <div class="node-idx">07</div>
+          <h4>Model Training</h4>
+          <p>Edge quantization for offline standalone nodes.</p>
+        </div>
+      </div>
+
+      <!-- Interactive Annotation Lab Demo Panel -->
+      <div class="dataset-simulator-wrap">
+        <div class="dataset-canvas-box">
+          <canvas id="datasetCanvas"></canvas>
+          <div style="position:absolute; top:12px; left:12px; z-index:3;">
+            <span class="demo-tag">DEMO VISUALIZATION // ANNOTATION ENGINE</span>
+          </div>
+        </div>
+
+        <div class="card-panel dataset-controls-box">
+          <div>
+            <div style="font-family:'Space Grotesk'; font-size:16px; font-weight:700; color:#fff;">
+              ANNOTATION LAYER VISUALIZER
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:6px;">
+              Toggle multi-modal ground truth layers on the simulated camera frame to inspect how raw video frames transform into structured model training data.
+            </p>
+
+            <div class="annotation-toggles">
+              <label class="annot-toggle-row">
+                <span style="font-family:'JetBrains Mono'; font-size:11px; color:#fff;">Astronaut Pose Skeleton (34 Joints)</span>
+                <input type="checkbox" id="chkPose" checked />
+              </label>
+
+              <label class="annot-toggle-row">
+                <span style="font-family:'JetBrains Mono'; font-size:11px; color:#fff;">Equipment & Vials (Object Bounding Boxes)</span>
+                <input type="checkbox" id="chkObjects" checked />
+              </label>
+
+              <label class="annot-toggle-row">
+                <span style="font-family:'JetBrains Mono'; font-size:11px; color:#fff;">Hand-Object Interaction (Contact Vectors)</span>
+                <input type="checkbox" id="chkHands" checked />
+              </label>
+
+              <label class="annot-toggle-row">
+                <span style="font-family:'JetBrains Mono'; font-size:11px; color:#fff;">Spatial Attention Saliency Grid</span>
+                <input type="checkbox" id="chkAttention" checked />
+              </label>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--line); padding-top:14px; margin-top:16px; font-family:'JetBrains Mono'; font-size:10px; color:var(--text-dim);">
+            <span>STATUS: SYNTHETIC DATASET DEMO // 100% STANDALONE</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 04: OPTIONAL ORIENTATION-AGNOSTIC 3D HMR (SECTIONS 6, 19)
+         ===================================================================== -->
+    <section class="section-container" id="hmr">
+      <div class="section-eyebrow">
+        04 / ADVANCED MODULE (OPTIONAL)
+      </div>
+
+      <h2 class="section-heading">
+        Orientation-Agnostic<br>
+        <span class="dim">3D Human Mesh Recovery.</span>
+      </h2>
+
+      <p class="section-lead">
+        Standard 2D and floor-based 3D posture models fail in microgravity because astronauts operate without a fixed "up" or "down" gravity vector. This optional advanced challenge implements an orientation-agnostic 3D Human Mesh Recovery (HMR) pipeline where body pose is tracked relative to the payload rack rather than a terrestrial floor.
+      </p>
+
+      <div class="hmr-special-card">
+        <div class="hmr-top-badge-row">
+          <div>
+            <span class="demo-tag" style="border-color:var(--cyan); color:var(--cyan);">ADVANCED / OPTIONAL CHALLENGE MODULE</span>
+            <div style="font-family:'Space Grotesk'; font-size:20px; font-weight:700; color:#fff; margin-top:6px;">
+              PAYLOAD RACK REFERENCE FRAME (RRF)
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:var(--green);">
+            ● RACK REFERENCE FRAME: FIXED XYZ
+          </div>
+        </div>
+
+        <div class="hmr-grid">
+          <!-- 3D WebGL Canvas for Rotating Astronaut inside Rack -->
+          <div class="hmr-3d-viewport">
+            <canvas id="hmrThreeCanvas"></canvas>
+            <div class="hmr-viewport-hud">
+              <div>FRAME: PAYLOAD_RACK_COORD</div>
+              <div>BODY POSE: RELATIVE_TO_RACK</div>
+              <div>ROLL: <span id="hudHmrRoll">0.0°</span> | PITCH: <span id="hudHmrPitch">0.0°</span></div>
+            </div>
+          </div>
+
+          <!-- Controls & Mathematical Explanation -->
+          <div class="hmr-interactive-controls">
+            <div style="background:rgba(255,255,255,0.02); border:1px solid var(--panel-border); border-radius:10px; padding:18px;">
+              <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--cyan); letter-spacing:0.14em;">
+                PRINCIPLE: BODY ORIENTATION ≠ FLOOR ORIENTATION
+              </div>
+              <p style="font-size:13px; color:var(--text-muted); line-height:1.7; margin-top:8px;">
+                Instead of projecting keypoints onto a virtual ground plane, the AI extracts a full 3D body mesh and computes joint angles with respect to coordinate axes [X_rack, Y_rack, Z_rack] anchored directly to the physical payload enclosure.
+              </p>
+            </div>
+
+            <div class="hmr-slider-group">
+              <label>
+                <span>ASTRONAUT MICROGRAVITY ROLL</span>
+                <span id="lblRollVal">0°</span>
+              </label>
+              <input type="range" id="sliderRoll" min="-180" max="180" value="0" />
+            </div>
+
+            <div class="hmr-slider-group">
+              <label>
+                <span>ASTRONAUT MICROGRAVITY PITCH</span>
+                <span id="lblPitchVal">15°</span>
+              </label>
+              <input type="range" id="sliderPitch" min="-90" max="90" value="15" />
+            </div>
+
+            <div class="hmr-slider-group">
+              <label>
+                <span>ASTRONAUT MICROGRAVITY YAW</span>
+                <span id="lblYawVal">30°</span>
+              </label>
+              <input type="range" id="sliderYaw" min="-180" max="180" value="30" />
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:10px;">
+              <button class="btn-secondary" id="btnResetHmr" style="flex:1; justify-content:center; padding:10px;">
+                RESET RACK ALIGNMENT
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 05: STANDALONE EDGE AI ARCHITECTURE (SECTIONS 4, 10, 17, 22)
+         ===================================================================== -->
+    <section class="section-container" id="edge-ai">
+      <div class="section-eyebrow">
+        05 / STANDALONE EDGE ARCHITECTURE
+      </div>
+
+      <h2 class="section-heading">
+        Process Locally.<br>
+        <span class="dim">Communicate Minimally.</span>
+      </h2>
+
+      <p class="section-lead">
+        Space station and lunar habitats operate under severe bandwidth constraints. High-definition raw video is never streamed back to Earth for inference; instead, local edge accelerators analyze every frame in-situ, producing lightweight structured text logs and local archives.
+      </p>
+
+      <div class="edge-arch-visual">
+        <div class="card-panel edge-flow-box">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-family:'Space Grotesk'; font-size:18px; font-weight:700; color:#fff;">
+              ON-BOARD EDGE SYSTEM ARCHITECTURE
+            </div>
+            <span class="real-tag">STANDALONE AI CORE</span>
+          </div>
+
+          <div class="edge-pipeline-diagram">
+            <div class="edge-pipe-node">
+              <div class="node-glyph">📹</div>
+              <div>
+                <h5>Fixed-Payload Camera Array</h5>
+                <span>1080p 60fps low-latency video feed directly facing the experiment rack.</span>
+              </div>
+            </div>
+
+            <div class="edge-pipe-node">
+              <div class="node-glyph">⚡</div>
+              <div>
+                <h5>Local Neural Inference Accelerator</h5>
+                <span>Rad-hardened edge TPU running quantized object, pose, and hand-object models.</span>
+              </div>
+            </div>
+
+            <div class="edge-pipe-node">
+              <div class="node-glyph">🧠</div>
+              <div>
+                <h5>Temporal HAR Transformer & Sequence Validator</h5>
+                <span>Finite-state experiment sequence analysis; detects skips and out-of-order anomalies.</span>
+              </div>
+            </div>
+
+            <div class="edge-pipe-node">
+              <div class="node-glyph">📢</div>
+              <div>
+                <h5>On-board Voice Synthesizer & Local NVMe Storage</h5>
+                <span>Sub-15ms local vocal alert generation; continuous timestamped structured text logging.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-panel ground-comm-side-card">
+          <div>
+            <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--amber); letter-spacing:0.18em;">
+              EARTH / GROUND STATION
+            </div>
+            <h4 style="font-family:'Space Grotesk'; font-size:18px; color:#fff; margin-top:8px;">
+              Constrained Downlink
+            </h4>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.7; margin-top:10px;">
+              Raw video transmission across deep-space distances creates unacceptable latency (seconds to minutes).
+              <br><br>
+              With on-board Edge AI, Earth receives only periodic lightweight telemetry digests and post-experiment audit logs:
+            </p>
+
+            <div style="background:#02060b; border:1px solid var(--panel-border); border-radius:6px; padding:12px; font-family:'JetBrains Mono'; font-size:10px; color:var(--cyan); margin-top:14px;">
+              [DOWNLINK_PAYLOAD]<br>
+              Size: &lt; 4.2 KB / experiment<br>
+              Format: Structured Text (.txt)<br>
+              Latency Impact: Zero on execution
+            </div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <div class="tele-label">COMMUNICATION LINK STATUS</div>
+            <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:600; color:var(--amber); margin-top:4px;">
+              SECONDARY / PERIODIC DOWNLINK
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 06: MISSION MONITORING DASHBOARD (GUI) (SECTIONS 7, 8, 9, 20)
+         ===================================================================== -->
+    <section class="section-container" id="monitor">
+      <div class="section-eyebrow">
+        06 / AEROSPACE OPERATIONS INTERFACE
+      </div>
+
+      <h2 class="section-heading">
+        Mission Monitoring Dashboard<br>
+        <span class="dim">& Camera Telemetry Console.</span>
+      </h2>
+
+      <p class="section-lead">
+        A unified aerospace operations interface for monitoring fixed-payload video feeds, AI inference pipelines, experiment sequences, IP streaming links, and local NVMe storage.
+      </p>
+
+      <div class="dashboard-shell">
+        <!-- Top Status Bar -->
+        <div class="dashboard-top-status-bar">
+          <div class="dash-status-item">
+            <span class="s-label">MISSION</span>
+            <span class="s-val cyan">BAS-EXP-001</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">CAMERA 01</span>
+            <span class="s-val green">● ONLINE</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">AI CORE</span>
+            <span class="s-val green">● LOCAL EDGE</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">EXPERIMENT</span>
+            <span class="s-val cyan">ACTIVE (EXP-04)</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">SEQUENCE VALIDATION</span>
+            <span class="s-val green" id="dashSeqStatus">VALIDATING</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">VOCAL ALERT</span>
+            <span class="s-val" id="dashAlertVal" style="color:var(--text-muted);">NONE</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">STORAGE CAPACITY</span>
+            <span class="s-val">84% FREE</span>
+          </div>
+        </div>
+
+        <!-- Dashboard Main Grid -->
+        <div class="dashboard-body-grid">
+          <!-- Live Camera Feed & AI Recognition Monitor -->
+          <div class="live-camera-feed-card">
+            <canvas id="feedSimulationCanvas"></canvas>
+
+            <div class="feed-overlay-header">
+              <span class="badge-edge" id="camFeedBadge">CAM 01 // PAYLOAD RACK ZOOM</span>
+              <span class="real-tag">EDGE HAR INFERENCE: ACTIVE</span>
+            </div>
+
+            <div class="feed-overlay-footer">
+              <span>DETECTED: <strong style="color:#fff;" id="dashDetectedActionText">STEP 02: RETRIEVE CONTAINER</strong></span>
+              <span>CONFIDENCE: <strong style="color:var(--green);">96.8% (DEMO)</strong></span>
+              <span>FPS: <strong>60.0</strong></span>
+            </div>
+          </div>
+
+          <!-- Video Transmission (IP Streaming) & Local Storage Panels -->
+          <div class="dash-side-panels">
+            <!-- IP Streaming Interface (Section 7) -->
+            <div class="ip-streaming-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:700; color:#fff;">
+                  VIDEO TRANSMISSION / IP STREAMING
+                </div>
+                <span class="demo-tag">INTERFACE DEMO</span>
+              </div>
+
+              <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+                Stream experiment video feed to an authorized station terminal or local network destination.
+              </p>
+
+              <div class="ip-input-row">
+                <input type="text" id="streamIpInput" value="192.168.1.140" placeholder="Destination IP (e.g. 192.168.x.x)" />
+                <button class="btn-sim nominal" id="btnConnectStream" style="padding:6px 14px;">
+                  CONNECT
+                </button>
+              </div>
+
+              <div style="font-family:'JetBrains Mono'; font-size:9px; color:var(--amber); margin-top:10px;">
+                ⚠️ NOTE: STREAMING INTERFACE / BACKEND INTEGRATION REQUIRED
+              </div>
+            </div>
+
+            <!-- Local Video Storage Panel (Section 8) -->
+            <div class="local-storage-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:700; color:#fff;">
+                  LOCAL EXPERIMENT ARCHIVE
+                </div>
+                <span class="demo-tag">DEMO STORAGE DATA</span>
+              </div>
+
+              <div class="storage-meter">
+                <span></span>
+              </div>
+
+              <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:9px; color:var(--text-dim); margin-bottom:12px;">
+                <span>NVMe ARRAY 01</span>
+                <span>1.6 TB / 4.0 TB USED</span>
+              </div>
+
+              <div style="display:grid; gap:6px; font-family:'JetBrains Mono'; font-size:10px;">
+                <div style="display:flex; justify-content:space-between; padding:6px 8px; background:rgba(255,255,255,0.02); border-radius:4px;">
+                  <span>EXPERIMENT_001.mp4</span>
+                  <span style="color:var(--cyan);">01:24:32 // 412 MB</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:6px 8px; background:rgba(255,255,255,0.02); border-radius:4px;">
+                  <span>EXPERIMENT_002.mp4</span>
+                  <span style="color:var(--cyan);">00:48:21 // 248 MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 07: ABOUT THE SYSTEM (SECTION 24)
+         ===================================================================== -->
+    <section class="section-container" id="about">
+      <div class="section-eyebrow">
+        07 / ABOUT THE SYSTEM
+      </div>
+
+      <h2 class="section-heading">
+        On-board Human Activity Intelligence<br>
+        <span class="dim">for Microgravity Science.</span>
+      </h2>
+
+      <p class="section-lead">
+        <strong>WHO AM I?</strong> The On-board Human Activity Recognition (HAR) Assistant is a specialized edge intelligence architecture designed to safeguard science beyond Earth's orbit by autonomously tracking, validating, and logging experiment execution protocols.
+      </p>
+
+      <div class="about-cards-grid">
+        <div class="capability-card">
+          <div class="cap-num">01 // CORE CAPABILITY</div>
+          <h4>Activity Recognition</h4>
+          <p>Multi-task spatio-temporal neural models recognize astronaut actions from fixed-payload cameras.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="cap-num">02 // CORE CAPABILITY</div>
+          <h4>Sequence Validation</h4>
+          <p>Verifies experiment workflows against predefined procedural state graphs.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="cap-num">03 // CORE CAPABILITY</div>
+          <h4>Next-Step Guidance</h4>
+          <p>Provides proactive recommended next actions as previous steps conclude.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="cap-num">04 // CORE CAPABILITY</div>
+          <h4>Deviation Detection</h4>
+          <p>Flags skipped or out-of-order procedural steps without needing ground verification.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="cap-num">05 // CORE CAPABILITY</div>
+          <h4>Voice Alerts</h4>
+          <p>Instant synthesized vocal cues alert astronauts to protocol errors immediately.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="cap-num">06 // CORE CAPABILITY</div>
+          <h4>Structured Logging</h4>
+          <p>Produces lightweight, timestamped plain text audit files for downlink.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="cap-num">07 // CORE CAPABILITY</div>
+          <h4>Local Video Storage</h4>
+          <p>High-bitrate local recording on rad-hardened NVMe with optional IP streaming.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="cap-num">08 // CORE CAPABILITY</div>
+          <h4>Standalone Edge AI</h4>
+          <p>Fully functional without internet, cloud, or high-bandwidth ground contact.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 08: FINAL CTA (SECTION 25)
+         ===================================================================== -->
+    <section class="final-cta-panel">
+      <h2>
+        SCIENCE BEYOND<br>
+        <span>EARTH'S ORBIT.</span>
+      </h2>
+
+      <p>
+        Let the system understand the experiment.
+      </p>
+
+      <div style="margin-top:34px;">
+        <a href="#monitor" class="btn-primary">
+          ENTER MISSION SYSTEM ▶
+        </a>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         FOOTER (SECTION 26)
+         ===================================================================== -->
+    <footer>
+      <div class="footer-left">
+        <strong>AI Human Activity Recognition for On-board BAS Experiments</strong>
+        <span>Edge AI // Human Activity Recognition // Experiment Validation // Offline Standalone Operation</span>
+      </div>
+
+      <div>
+        <span>STANDALONE EDGE SYSTEM // NO CLOUD REQUIRED</span>
+      </div>
+
+      <div>
+        <a href="#mission" style="color:var(--cyan); text-decoration:none;">▲ BACK TO APOGEE</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- =========================================================================
+       5. JAVASCRIPT MASTER RUNTIME ENGINE
+       ========================================================================= -->
+  <script>
+    /* -------------------------------------------------------------------------
+       A. SYNTHESIZED WEB AUDIO ENGINE (ZERO EXTERNAL ASSETS NEEDED)
+       ------------------------------------------------------------------------- */
+    class SpaceAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.isPlaying = false;
+        this.gainMaster = null;
+        this.oscHum1 = null;
+        this.oscHum2 = null;
+      }
+
+      init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+
+        this.gainMaster = this.ctx.createGain();
+        this.gainMaster.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+        this.gainMaster.connect(this.ctx.destination);
+
+        // Low ambient drone (55Hz + 110Hz)
+        this.oscHum1 = this.ctx.createOscillator();
+        this.oscHum1.type = 'sawtooth';
+        this.oscHum1.frequency.setValueAtTime(55, this.ctx.currentTime);
+
+        this.oscHum2 = this.ctx.createOscillator();
+        this.oscHum2.type = 'sine';
+        this.oscHum2.frequency.setValueAtTime(110, this.ctx.currentTime);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(160, this.ctx.currentTime);
+        filter.Q.setValueAtTime(3.5, this.ctx.currentTime);
+
+        this.oscHum1.connect(filter);
+        this.oscHum2.connect(filter);
+        filter.connect(this.gainMaster);
+
+        this.oscHum1.start();
+        this.oscHum2.start();
+      }
+
+      toggle() {
+        this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        this.isPlaying = !this.isPlaying;
+        if (this.isPlaying) {
+          this.gainMaster.gain.exponentialRampToValueAtTime(0.12, this.ctx.currentTime + 1.0);
+          this.playBeep(880, 0.15);
+        } else {
+          this.gainMaster.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.5);
+        }
+        return this.isPlaying;
+      }
+
+      playBeep(freq = 1200, dur = 0.08) {
+        if (!this.ctx || !this.isPlaying) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.6, this.ctx.currentTime + dur);
+
+          gain.gain.setValueAtTime(0.14, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + dur);
+        } catch(e) {}
+      }
+
+      playAlertChirp() {
+        this.playBeep(650, 0.25);
+        setTimeout(() => this.playBeep(650, 0.25), 180);
+      }
+    }
+
+    const audioEngine = new SpaceAudioEngine();
+
+    const audioMasterBtn = document.getElementById('audioMasterBtn');
+    const audioLabel = document.getElementById('audioLabel');
+    audioMasterBtn.addEventListener('click', () => {
+      const active = audioEngine.toggle();
+      audioMasterBtn.classList.toggle('active', active);
+      audioLabel.textContent = active ? 'AUDIO: ONLINE' : 'AUDIO: MUTED';
+    });
+
+    document.querySelectorAll('button, a').forEach(el => {
+      el.addEventListener('mouseenter', () => audioEngine.playBeep(1800, 0.03));
+    });
+
+    /* -------------------------------------------------------------------------
+       B. SPEECH SYNTHESIS ENGINE FOR VOICE ALERTS (SECTION 5, 21)
+       ------------------------------------------------------------------------- */
+    function speakAIVoice(phrase) {
+      const utteranceEl = document.getElementById('voiceUtteranceText');
+      const timeMetaEl = document.getElementById('voiceTimestampMeta');
+      if (utteranceEl) utteranceEl.textContent = `"${phrase}"`;
+      if (timeMetaEl) {
+        const d = new Date();
+        timeMetaEl.textContent = `STATUS: BROADCASTING // TIMESTAMP: ${d.toTimeString().split(' ')[0]} // VOICE DEMO`;
+      }
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(phrase);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.05;
+        // Search for clear English voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const engVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Zira') || v.name.includes('Samantha')));
+        if (engVoice) utterance.voice = engVoice;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    document.getElementById('btnTestVoice').addEventListener('click', () => {
+      const currentPhrase = document.getElementById('voiceUtteranceText').textContent.replace(/"/g, '');
+      speakAIVoice(currentPhrase);
+    });
+
+    /* -------------------------------------------------------------------------
+       C. CINEMATIC SYSTEM INITIALIZATION DIALOGUE (SECTION 12)
+       ------------------------------------------------------------------------- */
+    const introDialogue = [
+      "Initializing on-board neural runtime for BAS experiments...",
+      "System online. Neural weights verified in local edge cache.",
+      "I am the on-board Human Activity Recognition system.",
+      "I monitor astronaut activities during scientific experiments.",
+      "I analyze video locally at the edge — minimizing dependence on continuous communication with Earth.",
+      "I recognize experiment steps and validate protocol sequences in real-time.",
+      "I identify deviations, suggest next steps, and generate voice alerts.",
+      "Ready to support science beyond Earth's orbit."
+    ];
+
+    let introStep = 0;
+    const introDialogueEl = document.getElementById('introDialogueText');
+    const introStatusTextEl = document.getElementById('introStatusText');
+    const shutter = document.getElementById('systemIntroShutter');
+
+    function advanceIntro() {
+      if (introStep < introDialogue.length) {
+        introDialogueEl.textContent = `"${introDialogue[introStep]}"`;
+        introStatusTextEl.textContent = `STEP ${introStep + 1}/${introDialogue.length} // WAKING UP`;
+        audioEngine.playBeep(900 + introStep * 100, 0.08);
+        introStep++;
+        setTimeout(advanceIntro, 2200);
+      } else {
+        introStatusTextEl.textContent = 'SYSTEM ONLINE // READY';
+      }
+    }
+
+    function closeIntro() {
+      shutter.classList.add('hidden');
+      audioEngine.playBeep(1400, 0.15);
+    }
+
+    document.getElementById('btnSkipIntro').addEventListener('click', closeIntro);
+    document.getElementById('btnEnterMissionDirect').addEventListener('click', closeIntro);
+    document.getElementById('btnReplayIntro').addEventListener('click', () => {
+      introStep = 0;
+      shutter.classList.remove('hidden');
+      advanceIntro();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeIntro();
+    });
+
+    // Start intro after slight delay
+    setTimeout(advanceIntro, 600);
+
+    /* -------------------------------------------------------------------------
+       D. PROCEDURAL 3D BACKGROUND WEBGL SCENE (EARTH, STATION & STARS)
+       ------------------------------------------------------------------------- */
+    const bgCanvas = document.getElementById('spaceBackgroundCanvas');
+    let bgRenderer, bgScene, bgCamera;
+    let bgEarth, bgClouds, bgStationTruss, bgStars;
+
+    function initBackgroundThree() {
+      bgRenderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: true, alpha: true });
+      bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      bgRenderer.setSize(window.innerWidth, window.innerHeight);
+
+      bgScene = new THREE.Scene();
+      bgScene.fog = new THREE.FogExp2(0x02070d, 0.04);
+
+      bgCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+      bgCamera.position.set(0, 1.2, 7.5);
+
+      // Light
+      const sun = new THREE.DirectionalLight(0xfff5e0, 2.5);
+      sun.position.set(10, 5, 8);
+      bgScene.add(sun);
+
+      const amb = new THREE.AmbientLight(0x0c1e2e, 0.6);
+      bgScene.add(amb);
+
+      // Stars
+      const sCount = 2200;
+      const sGeo = new THREE.BufferGeometry();
+      const sPos = new Float32Array(sCount * 3);
+      for (let i = 0; i < sCount * 3; i += 3) {
+        const r = 50 + Math.random() * 80;
+        const th = Math.random() * Math.PI * 2;
+        const ph = Math.acos(Math.random() * 2 - 1);
+        sPos[i] = r * Math.sin(ph) * Math.cos(th);
+        sPos[i + 1] = r * Math.sin(ph) * Math.sin(th);
+        sPos[i + 2] = r * Math.cos(ph);
+      }
+      sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+      const sMat = new THREE.PointsMaterial({ size: 0.2, color: 0x8cecff, transparent: true, opacity: 0.8 });
+      bgStars = new THREE.Points(sGeo, sMat);
+      bgScene.add(bgStars);
+
+      // Procedural Earth
+      const earthCanvas = document.createElement('canvas');
+      earthCanvas.width = 1024;
+      earthCanvas.height = 512;
+      const eCtx = earthCanvas.getContext('2d');
+      eCtx.fillStyle = '#031122';
+      eCtx.fillRect(0, 0, 1024, 512);
+      eCtx.fillStyle = '#143d32';
+      for (let i = 0; i < 30; i++) {
+        eCtx.beginPath();
+        eCtx.arc(Math.random() * 1024, Math.random() * 512, 40 + Math.random() * 90, 0, Math.PI * 2);
+        eCtx.fill();
+      }
+      eCtx.fillStyle = '#fce588';
+      for (let i = 0; i < 400; i++) {
+        eCtx.fillRect(Math.random() * 1024, 100 + Math.random() * 300, 2, 2);
+      }
+      const earthTex = new THREE.CanvasTexture(earthCanvas);
+
+      const earthGeo = new THREE.SphereGeometry(2.2, 48, 48);
+      const earthMat = new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.7, metalness: 0.1 });
+      bgEarth = new THREE.Mesh(earthGeo, earthMat);
+      bgEarth.position.set(0, -1.8, 0);
+      bgScene.add(bgEarth);
+
+      // Atmospheric Glow
+      const atmoGeo = new THREE.SphereGeometry(2.32, 48, 48);
+      const atmoMat = new THREE.MeshBasicMaterial({ color: 0x8cecff, transparent: true, opacity: 0.15, side: THREE.BackSide });
+      const atmo = new THREE.Mesh(atmoGeo, atmoMat);
+      bgEarth.add(atmo);
+
+      // Space Station Truss Silhouette Representation
+      bgStationTruss = new THREE.Group();
+      const trussMat = new THREE.MeshStandardMaterial({ color: 0x8aa2b3, metalness: 0.8, roughness: 0.3 });
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 0.08), trussMat);
+      bgStationTruss.add(beam);
+
+      const solarMat = new THREE.MeshStandardMaterial({ color: 0x133454, metalness: 0.9, roughness: 0.2 });
+      const sp1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.02), solarMat);
+      sp1.position.set(-1.1, 0, 0);
+      bgStationTruss.add(sp1);
+
+      const sp2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.02), solarMat);
+      sp2.position.set(1.1, 0, 0);
+      bgStationTruss.add(sp2);
+
+      const mod = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8, 16), trussMat);
+      mod.rotation.z = Math.PI * 0.5;
+      bgStationTruss.add(mod);
+
+      bgStationTruss.position.set(1.8, 1.4, 3.2);
+      bgStationTruss.rotation.y = -Math.PI * 0.25;
+      bgScene.add(bgStationTruss);
+
+      window.addEventListener('resize', () => {
+        bgCamera.aspect = window.innerWidth / window.innerHeight;
+        bgCamera.updateProjectionMatrix();
+        bgRenderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      animateBackgroundThree();
+    }
+
+    let bgScroll = 0;
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      bgScroll = Math.max(0, Math.min(1, window.scrollY / (h || 1)));
+
+      // Active menu highlight
+      const navIds = ['mission', 'how-it-works', 'pipeline', 'experiment', 'dataset', 'edge-ai', 'hmr', 'monitor', 'about'];
+      navIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= window.innerHeight * 0.45 && rect.bottom >= window.innerHeight * 0.2) {
+            document.querySelectorAll('.nav-menu a').forEach(a => {
+              a.classList.toggle('active', a.getAttribute('href') === `#${id}`);
+            });
+          }
+        }
+      });
+    });
+
+    function animateBackgroundThree() {
+      requestAnimationFrame(animateBackgroundThree);
+      const t = performance.now() * 0.001;
+
+      if (bgEarth) bgEarth.rotation.y = t * 0.03 + bgScroll * Math.PI;
+      if (bgStationTruss) {
+        bgStationTruss.rotation.z = Math.sin(t * 0.2) * 0.05;
+        bgStationTruss.position.y = 1.4 + Math.sin(t * 0.4) * 0.08 - bgScroll * 1.5;
+      }
+
+      bgCamera.position.y = 1.2 - bgScroll * 2.2;
+      bgCamera.position.z = 7.5 - bgScroll * 1.8;
+      bgCamera.lookAt(0, -bgScroll * 1.0, 0);
+
+      bgRenderer.render(bgScene, bgCamera);
+    }
+
+    initBackgroundThree();
+
+    /* -------------------------------------------------------------------------
+       E. EXPERIMENT PROTOCOL STATE MACHINE & SIMULATION (SECTIONS 8, 9, 10, 15, 16)
+       ------------------------------------------------------------------------- */
+    const experimentSteps = [
+      {
+        index: 1,
+        title: "Prepare equipment & sterile workspace",
+        action: "Align biological specimen payload rack & engage suction seal",
+        status: "VALIDATED",
+        badgeClass: "validated",
+        confidence: "Demo confidence 97.4%"
+      },
+      {
+        index: 2,
+        title: "Retrieve sample container from storage bay",
+        action: "Unlock bay latch & extract microgravity cryo-vial container",
+        status: "COMPLETED",
+        badgeClass: "validated",
+        confidence: "Demo confidence 96.8%"
+      },
+      {
+        index: 3,
+        title: "Place sample on payload centrifuge rack",
+        action: "Align vessel into centrifuge slot 03 until locking click",
+        status: "READY",
+        badgeClass: "validated",
+        confidence: "Demo confidence 95.1%"
+      },
+      {
+        index: 4,
+        title: "Engage centrifuge & activate payload circuit",
+        action: "Toggle circuit breaker B4 & initiate 1200 RPM spin profile",
+        status: "AWAITING",
+        badgeClass: "validated",
+        confidence: "Demo confidence 92.5%"
+      },
+      {
+        index: 5,
+        title: "Record observation telemetry in logbook",
+        action: "Verify optical density metrics and archive run timestamp",
+        status: "PENDING",
+        badgeClass: "validated",
+        confidence: "Demo confidence 94.0%"
+      }
+    ];
+
+    let selectedStepIndex = 2; // Step 02 initially selected
+
+    function renderProtocolStepList() {
+      const listEl = document.getElementById('protocolStepList');
+      listEl.innerHTML = '';
+
+      experimentSteps.forEach((s) => {
+        const item = document.createElement('div');
+        item.className = `proto-step-item ${s.index === selectedStepIndex ? 'active' : ''} ${s.badgeClass === 'alert-skip' ? 'skipped' : ''} ${s.badgeClass === 'alert-dev' ? 'deviation' : ''}`;
+        item.innerHTML = `
+          <div class="proto-left">
+            <div class="proto-index">0${s.index}</div>
+            <div class="proto-text">
+              <h4>${s.title}</h4>
+              <span>${s.action}</span>
+            </div>
+          </div>
+          <div>
+            <span class="proto-badge ${s.badgeClass}">${s.status}</span>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          selectedStepIndex = s.index;
+          updateStepInspector(s);
+          renderProtocolStepList();
+          audioEngine.playBeep(1200, 0.05);
+        });
+        listEl.appendChild(item);
+      });
+    }
+
+    function updateStepInspector(s) {
+      document.getElementById('inspectStepTitle').textContent = `Step 0${s.index} — ${s.title}`;
+      document.getElementById('inspectExpected').textContent = s.title;
+      document.getElementById('inspectDetected').textContent = s.action;
+      document.getElementById('inspectConfidence').textContent = s.confidence;
+
+      const badgeEl = document.getElementById('inspectStatusBadge');
+      badgeEl.innerHTML = `<span class="proto-badge ${s.badgeClass}">${s.status}</span>`;
+
+      const seqStatusEl = document.getElementById('inspectSeqStatus');
+      const nextBoxEl = document.getElementById('nextStepBox');
+      const nextTitleEl = document.getElementById('nextStepTitle');
+
+      if (s.badgeClass === 'alert-skip') {
+        seqStatusEl.textContent = 'SEQUENCE DEVIATION: STEP SKIPPED';
+        seqStatusEl.style.color = 'var(--amber)';
+        nextBoxEl.style.borderColor = 'var(--amber)';
+        nextTitleEl.textContent = '⚠️ RECOMMENDED ACTION: Return to Step 03 before continuing';
+      } else if (s.badgeClass === 'alert-dev') {
+        seqStatusEl.textContent = 'SEQUENCE DEVIATION: OUT-OF-SEQUENCE ACTION';
+        seqStatusEl.style.color = 'var(--red)';
+        nextBoxEl.style.borderColor = 'var(--red)';
+        nextTitleEl.textContent = '⚠️ PROTOCOL HALT: Validate prerequisite steps';
+      } else {
+        seqStatusEl.textContent = 'Nominal Sequence Alignment';
+        seqStatusEl.style.color = 'var(--green)';
+        nextBoxEl.style.borderColor = 'var(--cyan)';
+
+        const nextStep = experimentSteps.find(step => step.index === s.index + 1);
+        if (nextStep) {
+          nextTitleEl.textContent = `Step 0${nextStep.index} — ${nextStep.title}`;
+        } else {
+          nextTitleEl.textContent = 'Experiment Sequence Finished // Log Validated';
+        }
+      }
+    }
+
+    renderProtocolStepList();
+    updateStepInspector(experimentSteps[1]);
+
+    // Initial Logs
+    const logEntries = [
+      { time: "10:42:13", step: "STEP 01", desc: "Astronaut entered zone. Suction seal confirmed nominal.", status: "VALIDATED", class: "valid" },
+      { time: "10:42:27", step: "STEP 02", desc: "Sample container retrieved from cryo-bay.", status: "VALIDATED", class: "valid" }
+    ];
+
+    function renderLogTerminal() {
+      const termEl = document.getElementById('logTerminalOutput');
+      termEl.innerHTML = '';
+      logEntries.forEach(l => {
+        const row = document.createElement('div');
+        row.className = 'log-line';
+        row.innerHTML = `
+          <span class="timestamp">[${l.time}]</span>
+          <span class="step-no">${l.step}</span>
+          <span class="desc">${l.desc}</span>
+          <span class="status-pill ${l.class}">${l.status}</span>
+        `;
+        termEl.appendChild(row);
+      });
+      termEl.scrollTop = termEl.scrollHeight;
+    }
+    renderLogTerminal();
+
+    function addLogEntry(step, desc, status, statusClass) {
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+      logEntries.push({ time: timeStr, step, desc, status, class: statusClass });
+      renderLogTerminal();
+    }
+
+    // Simulation Trigger 1: Nominal Sequence (Connected to Backend API)
+    document.getElementById('btnRunNominal').addEventListener('click', async () => {
+      experimentSteps[2].status = "VALIDATED";
+      experimentSteps[2].badgeClass = "validated";
+      experimentSteps[3].status = "VALIDATED";
+      experimentSteps[3].badgeClass = "validated";
+      experimentSteps[4].status = "READY";
+      experimentSteps[4].badgeClass = "validated";
+
+      selectedStepIndex = 3;
+      renderProtocolStepList();
+      updateStepInspector(experimentSteps[2]);
+
+      document.getElementById('dashSeqStatus').textContent = "VALIDATING";
+      document.getElementById('dashSeqStatus').className = "s-val green";
+      document.getElementById('dashAlertVal').textContent = "NONE";
+      document.getElementById('dashAlertVal').style.color = "var(--text-muted)";
+
+      speakAIVoice("Step 03 placed on payload rack. Next recommended step: activate payload circuit.");
+      addLogEntry("STEP 03", "Sample placed on payload rack.", "VALIDATED", "valid");
+      audioEngine.playBeep(1200, 0.1);
+
+      // Async backend call
+      try {
+        await fetch(`${BACKEND_URL}/api/sequence/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ detected_step_index: 3, detected_action: "Place sample on payload centrifuge rack" })
+        });
+        loadBackendLogs();
+      } catch (e) {}
+    });
+
+    // Simulation Trigger 2: Skipped Step Detection (Connected to Backend API)
+    document.getElementById('btnSimulateSkip').addEventListener('click', async () => {
+      experimentSteps[2].status = "SKIPPED";
+      experimentSteps[2].badgeClass = "alert-skip";
+      experimentSteps[3].status = "UNEXPECTED";
+      experimentSteps[3].badgeClass = "alert-skip";
+
+      selectedStepIndex = 3;
+      renderProtocolStepList();
+      updateStepInspector(experimentSteps[2]);
+
+      document.getElementById('dashSeqStatus').textContent = "DEVIATION DETECTED";
+      document.getElementById('dashSeqStatus').className = "s-val amber";
+      document.getElementById('dashAlertVal').textContent = "STEP 03 SKIPPED";
+      document.getElementById('dashAlertVal').style.color = "var(--amber)";
+
+      speakAIVoice("Sequence deviation alert. Step zero-three has been skipped. Please place sample on rack.");
+      addLogEntry("STEP 03", "Step 03 not detected. Action bypassed to Step 04.", "SKIPPED", "alert");
+      audioEngine.playAlertChirp();
+
+      // Async backend call
+      try {
+        await fetch(`${BACKEND_URL}/api/sequence/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ detected_step_index: 4, detected_action: "Engage centrifuge & activate payload circuit" })
+        });
+        loadBackendLogs();
+      } catch (e) {}
+    });
+
+    // Simulation Trigger 3: Out-of-Sequence Activity Detection (Connected to Backend API)
+    document.getElementById('btnSimulateOutOfOrder').addEventListener('click', async () => {
+      experimentSteps[3].status = "OUT-OF-ORDER";
+      experimentSteps[3].badgeClass = "alert-dev";
+
+      selectedStepIndex = 4;
+      renderProtocolStepList();
+      updateStepInspector(experimentSteps[3]);
+
+      document.getElementById('dashSeqStatus').textContent = "PROTOCOL ERROR";
+      document.getElementById('dashSeqStatus').className = "s-val error";
+      document.getElementById('dashAlertVal').textContent = "OUT-OF-ORDER ACTION";
+      document.getElementById('dashAlertVal').style.color = "var(--red)";
+
+      speakAIVoice("Warning. Out of sequence activity detected. Expected step zero-two, detected step zero-four.");
+      addLogEntry("STEP 04", "Unexpected activity detected out of sequence. Protocol halt.", "ALERT", "error");
+      audioEngine.playAlertChirp();
+
+      // Async backend call
+      try {
+        await fetch(`${BACKEND_URL}/api/sequence/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ detected_step_index: 1, detected_action: "Unexpected sequence reset action" })
+        });
+        loadBackendLogs();
+      } catch (e) {}
+    });
+
+    // Export Lightweight Structured Text Log (Direct from Backend or Local Fallback)
+    document.getElementById('btnExportLog').addEventListener('click', () => {
+      audioEngine.playBeep(1600, 0.15);
+
+      // Attempt direct backend export endpoint
+      try {
+        window.location.href = `${BACKEND_URL}/api/logs/export`;
+        return;
+      } catch (e) {}
+
+      // Fallback to client-side blob download if offline
+      let fileContent = "============================================================\n";
+      fileContent += "AI HUMAN ACTIVITY RECOGNITION — EXPERIMENT AUDIT LOG\n";
+      fileContent += "MISSION: BAS-EXP-001 | SYSTEM: ON-BOARD STANDALONE EDGE AI\n";
+      fileContent += "FORMAT: timestamp | step | activity | status | outcome\n";
+      fileContent += "============================================================\n\n";
+
+      logEntries.forEach(e => {
+        fileContent += `[${e.time}] | ${e.step} | ${e.desc} | ${e.status} | NOMINAL_AUDIT\n`;
+      });
+
+      const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `BAS_EXP_001_LOG_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    /* -------------------------------------------------------------------------
+       F. DATASET GENERATION LAB CANVAS SIMULATOR (SECTIONS 5, 18)
+       ------------------------------------------------------------------------- */
+    const dCanvas = document.getElementById('datasetCanvas');
+    const dCtx = dCanvas.getContext('2d');
+
+    function resizeDatasetCanvas() {
+      dCanvas.width = dCanvas.parentElement.clientWidth;
+      dCanvas.height = dCanvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeDatasetCanvas);
+    resizeDatasetCanvas();
+
+    const chkPose = document.getElementById('chkPose');
+    const chkObjects = document.getElementById('chkObjects');
+    const chkHands = document.getElementById('chkHands');
+    const chkAttention = document.getElementById('chkAttention');
+
+    let dTime = 0;
+    function renderDatasetSimulation() {
+      requestAnimationFrame(renderDatasetSimulation);
+      dTime += 0.03;
+
+      const w = dCanvas.width;
+      const h = dCanvas.height;
+      dCtx.clearRect(0, 0, w, h);
+
+      // Background Payload Bay Environment
+      dCtx.fillStyle = '#030a12';
+      dCtx.fillRect(0, 0, w, h);
+
+      // Grid
+      dCtx.strokeStyle = 'rgba(140, 236, 255, 0.05)';
+      dCtx.lineWidth = 1;
+      for (let x = 0; x < w; x += 36) {
+        dCtx.beginPath(); dCtx.moveTo(x, 0); dCtx.lineTo(x, h); dCtx.stroke();
+      }
+      for (let y = 0; y < h; y += 36) {
+        dCtx.beginPath(); dCtx.moveTo(0, y); dCtx.lineTo(w, y); dCtx.stroke();
+      }
+
+      // Attention Heatmap Layer
+      if (chkAttention.checked) {
+        const rad = 70 + Math.sin(dTime * 2) * 10;
+        const grad = dCtx.createRadialGradient(w * 0.52, h * 0.5, 10, w * 0.52, h * 0.5, rad);
+        grad.addColorStop(0, 'rgba(140, 236, 255, 0.22)');
+        grad.addColorStop(0.5, 'rgba(140, 236, 193, 0.1)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        dCtx.fillStyle = grad;
+        dCtx.beginPath();
+        dCtx.arc(w * 0.52, h * 0.5, rad, 0, Math.PI * 2);
+        dCtx.fill();
+      }
+
+      // Astronaut Skeleton (34 Joints)
+      if (chkPose.checked) {
+        const cx = w * 0.45;
+        const cy = h * 0.48;
+        const sway = Math.sin(dTime * 1.5) * 8;
+
+        dCtx.strokeStyle = '#8cecff';
+        dCtx.lineWidth = 2.5;
+        dCtx.shadowColor = '#8cecff';
+        dCtx.shadowBlur = 10;
+
+        function line(x1, y1, x2, y2) {
+          dCtx.beginPath(); dCtx.moveTo(x1, y1); dCtx.lineTo(x2, y2); dCtx.stroke();
+        }
+
+        const headY = cy - 70 + sway;
+        const spineY = cy - 10 + sway * 0.7;
+        const hipY = cy + 40;
+
+        line(cx, headY, cx, spineY);
+        line(cx - 30, spineY - 15, cx + 30, spineY - 15);
+        line(cx - 30, spineY - 15, cx - 55, cy + 15);
+        line(cx + 30, spineY - 15, cx + 55 + Math.sin(dTime * 2) * 12, cy + 10);
+
+        line(cx, spineY, cx, hipY);
+        line(cx - 20, hipY, cx - 35, cy + 95);
+        line(cx + 20, hipY, cx + 35, cy + 90);
+
+        // Nodes
+        dCtx.fillStyle = '#a5ffca';
+        dCtx.shadowColor = '#a5ffca';
+        dCtx.shadowBlur = 12;
+        const nodes = [
+          [cx, headY], [cx, spineY - 15], [cx - 30, spineY - 15], [cx + 30, spineY - 15],
+          [cx - 55, cy + 15], [cx + 55 + Math.sin(dTime * 2) * 12, cy + 10],
+          [cx, hipY], [cx - 20, hipY], [cx + 20, hipY],
+          [cx - 35, cy + 95], [cx + 35, cy + 90]
+        ];
+        nodes.forEach(([nx, ny]) => {
+          dCtx.beginPath(); dCtx.arc(nx, ny, 4, 0, Math.PI * 2); dCtx.fill();
+        });
+        dCtx.shadowBlur = 0;
+      }
+
+      // Object Bounding Boxes
+      if (chkObjects.checked) {
+        dCtx.strokeStyle = '#a5ffca';
+        dCtx.lineWidth = 1.5;
+        dCtx.fillStyle = 'rgba(165, 255, 202, 0.08)';
+
+        // Sample vial rack box
+        const rx = w * 0.62, ry = h * 0.38, rw = 110, rh = 120;
+        dCtx.strokeRect(rx, ry, rw, rh);
+        dCtx.fillRect(rx, ry, rw, rh);
+
+        dCtx.fillStyle = '#a5ffca';
+        dCtx.font = '9px "JetBrains Mono"';
+        dCtx.fillText("PAYLOAD_CENTRIFUGE [98%]", rx, ry - 6);
+
+        // Cryo tube box
+        const tx = w * 0.52 + Math.sin(dTime * 2) * 6, ty = h * 0.44, tw = 45, th = 35;
+        dCtx.strokeStyle = '#ffbe6b';
+        dCtx.strokeRect(tx, ty, tw, th);
+        dCtx.fillStyle = '#ffbe6b';
+        dCtx.fillText("VIAL_CONTAINER [95%]", tx, ty - 5);
+      }
+
+      // Hand-Object Interaction Vectors
+      if (chkHands.checked) {
+        const handX = w * 0.45 + 55 + Math.sin(dTime * 2) * 12;
+        const handY = h * 0.48 + 10;
+        const objX = w * 0.52 + Math.sin(dTime * 2) * 6 + 20;
+        const objY = h * 0.44 + 16;
+
+        dCtx.strokeStyle = '#8cecff';
+        dCtx.lineWidth = 1.8;
+        dCtx.setLineDash([4, 4]);
+        dCtx.beginPath();
+        dCtx.moveTo(handX, handY);
+        dCtx.lineTo(objX, objY);
+        dCtx.stroke();
+        dCtx.setLineDash([]);
+
+        dCtx.fillStyle = '#8cecff';
+        dCtx.font = '9px "JetBrains Mono"';
+        dCtx.fillText("CONTACT_VECTOR: GRIP_ACTIVE (0.04m)", handX - 30, handY + 22);
+      }
+    }
+    renderDatasetSimulation();
+
+    /* -------------------------------------------------------------------------
+       G. OPTIONAL ORIENTATION-AGNOSTIC 3D HMR (SECTIONS 6, 19)
+       ------------------------------------------------------------------------- */
+    const hmrCanvas = document.getElementById('hmrThreeCanvas');
+    let hmrRenderer, hmrScene, hmrCamera;
+    let hmrRackGroup, hmrAstronautMesh;
+
+    function initHmrThree() {
+      hmrRenderer = new THREE.WebGLRenderer({ canvas: hmrCanvas, antialias: true, alpha: true });
+      hmrRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      hmrRenderer.setSize(hmrCanvas.parentElement.clientWidth, hmrCanvas.parentElement.clientHeight);
+
+      hmrScene = new THREE.Scene();
+      hmrCamera = new THREE.PerspectiveCamera(40, hmrCanvas.parentElement.clientWidth / hmrCanvas.parentElement.clientHeight, 0.1, 100);
+      hmrCamera.position.set(0, 0, 5.2);
+
+      const light = new THREE.DirectionalLight(0xffffff, 1.8);
+      light.position.set(5, 5, 5);
+      hmrScene.add(light);
+      hmrScene.add(new THREE.AmbientLight(0x1a334d, 0.8));
+
+      // Fixed Payload Rack Reference Frame (Wireframe box + marked axes)
+      hmrRackGroup = new THREE.Group();
+
+      const rackBoxMat = new THREE.MeshBasicMaterial({ color: 0x8cecff, wireframe: true, transparent: true, opacity: 0.25 });
+      const rackBox = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 1.6), rackBoxMat);
+      hmrRackGroup.add(rackBox);
+
+      // Attached XYZ Axes attached to the Payload Rack
+      const axesHelper = new THREE.AxesHelper(1.2);
+      axesHelper.position.set(-1.1, -1.3, -0.7);
+      hmrRackGroup.add(axesHelper);
+
+      hmrScene.add(hmrRackGroup);
+
+      // Astronaut 3D Body Mesh Representation inside the Rack
+      const astroMat = new THREE.MeshStandardMaterial({
+        color: 0xd4ecf8,
+        wireframe: true,
+        emissive: new THREE.Color(0x184260),
+        roughness: 0.4
+      });
+
+      const bodyGroup = new THREE.Group();
+
+      // Torso
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.8, 16), astroMat);
+      bodyGroup.add(torso);
+
+      // Helmet / Head
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), astroMat);
+      head.position.set(0, 0.62, 0);
+      bodyGroup.add(head);
+
+      // Limbs
+      const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.65, 8), astroMat);
+      armL.position.set(-0.38, 0.1, 0);
+      armL.rotation.z = Math.PI * 0.25;
+      bodyGroup.add(armL);
+
+      const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.65, 8), astroMat);
+      armR.position.set(0.38, 0.1, 0);
+      armR.rotation.z = -Math.PI * 0.25;
+      bodyGroup.add(armR);
+
+      const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.75, 8), astroMat);
+      legL.position.set(-0.16, -0.75, 0);
+      bodyGroup.add(legL);
+
+      const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.75, 8), astroMat);
+      legR.position.set(0.16, -0.75, 0);
+      bodyGroup.add(legR);
+
+      hmrAstronautMesh = bodyGroup;
+      hmrRackGroup.add(hmrAstronautMesh);
+
+      window.addEventListener('resize', () => {
+        const w = hmrCanvas.parentElement.clientWidth;
+        const h = hmrCanvas.parentElement.clientHeight;
+        hmrCamera.aspect = w / h;
+        hmrCamera.updateProjectionMatrix();
+        hmrRenderer.setSize(w, h);
+      });
+
+      animateHmrThree();
+    }
+
+    const sliderRoll = document.getElementById('sliderRoll');
+    const sliderPitch = document.getElementById('sliderPitch');
+    const sliderYaw = document.getElementById('sliderYaw');
+
+    function updateHmrRotation() {
+      const r = THREE.MathUtils.degToRad(parseFloat(sliderRoll.value));
+      const p = THREE.MathUtils.degToRad(parseFloat(sliderPitch.value));
+      const y = THREE.MathUtils.degToRad(parseFloat(sliderYaw.value));
+
+      document.getElementById('lblRollVal').textContent = `${sliderRoll.value}°`;
+      document.getElementById('lblPitchVal').textContent = `${sliderPitch.value}°`;
+      document.getElementById('lblYawVal').textContent = `${sliderYaw.value}°`;
+
+      document.getElementById('hudHmrRoll').textContent = `${sliderRoll.value}°`;
+      document.getElementById('hudHmrPitch').textContent = `${sliderPitch.value}°`;
+
+      if (hmrAstronautMesh) {
+        hmrAstronautMesh.rotation.set(p, y, r);
+      }
+    }
+
+    [sliderRoll, sliderPitch, sliderYaw].forEach(sl => {
+      sl.addEventListener('input', updateHmrRotation);
+    });
+
+    document.getElementById('btnResetHmr').addEventListener('click', () => {
+      sliderRoll.value = 0;
+      sliderPitch.value = 15;
+      sliderYaw.value = 30;
+      updateHmrRotation();
+      audioEngine.playBeep(1400, 0.08);
+    });
+
+    function animateHmrThree() {
+      requestAnimationFrame(animateHmrThree);
+      const t = performance.now() * 0.001;
+
+      // Slowly rotate rack reference view slightly for depth parallax
+      if (hmrRackGroup) {
+        hmrRackGroup.rotation.y = Math.sin(t * 0.3) * 0.15;
+        hmrRackGroup.rotation.x = Math.cos(t * 0.25) * 0.08;
+      }
+
+      hmrRenderer.render(hmrScene, hmrCamera);
+    }
+
+    initHmrThree();
+    updateHmrRotation();
+
+    /* -------------------------------------------------------------------------
+       H. DASHBOARD VIDEO FEED SIMULATION (SECTIONS 7, 8, 9, 20)
+       ------------------------------------------------------------------------- */
+    const feedCanvas = document.getElementById('feedSimulationCanvas');
+    const fCtx = feedCanvas.getContext('2d');
+
+    function resizeFeedCanvas() {
+      feedCanvas.width = feedCanvas.parentElement.clientWidth;
+      feedCanvas.height = feedCanvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeFeedCanvas);
+    resizeFeedCanvas();
+
+    let feedTime = 0;
+    function renderFeedCanvas() {
+      requestAnimationFrame(renderFeedCanvas);
+      feedTime += 0.025;
+
+      const w = feedCanvas.width;
+      const h = feedCanvas.height;
+      fCtx.clearRect(0, 0, w, h);
+
+      // Camera sensor background
+      fCtx.fillStyle = '#020912';
+      fCtx.fillRect(0, 0, w, h);
+
+      // Subtle video noise & scanning raster
+      fCtx.fillStyle = 'rgba(140, 236, 255, 0.02)';
+      for (let i = 0; i < h; i += 4) {
+        fCtx.fillRect(0, i, w, 1);
+      }
+
+      // Moving astronaut model representation
+      const ax = w * 0.48 + Math.sin(feedTime * 1.8) * 14;
+      const ay = h * 0.52 + Math.cos(feedTime * 1.2) * 8;
+
+      // Draw bounding box
+      fCtx.strokeStyle = '#a5ffca';
+      fCtx.lineWidth = 1.5;
+      fCtx.strokeRect(ax - 50, ay - 90, 100, 160);
+
+      fCtx.fillStyle = '#a5ffca';
+      fCtx.font = '9px "JetBrains Mono"';
+      fCtx.fillText("ASTRONAUT_EXP_01 [CONF: 96.8%]", ax - 50, ay - 96);
+
+      // Center crosshair
+      fCtx.strokeStyle = 'rgba(140, 236, 255, 0.25)';
+      fCtx.beginPath();
+      fCtx.moveTo(w * 0.5 - 20, h * 0.5); fCtx.lineTo(w * 0.5 + 20, h * 0.5);
+      fCtx.moveTo(w * 0.5, h * 0.5 - 20); fCtx.lineTo(w * 0.5, h * 0.5 + 20);
+      fCtx.stroke();
+    }
+    renderFeedCanvas();
+
+    // =========================================================================
+    // I. LIVE BACKEND FASTAPI & WEBSOCKET INTEGRATION
+    // =========================================================================
+    const BACKEND_URL = window.location.origin;
+
+    // Check Backend Connection & Update Status
+    async function initBackendConnection() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/status`);
+        if (res.ok) {
+          const data = await res.json();
+          const badge = document.querySelector('.nav-standalone-tag');
+          if (badge) {
+            badge.innerHTML = '<span class="pulse-dot"></span> BACKEND LIVE // FASTAPI EDGE';
+            badge.style.color = 'var(--cyan)';
+          }
+          console.log('[AI-HAR] Connected to Edge AI FastAPI Backend:', data);
+          loadBackendLogs();
+        }
+      } catch (err) {
+        console.warn('[AI-HAR] Running in standalone offline browser mode (local engine).');
+      }
+    }
+    initBackendConnection();
+
+    // Fetch and Sync Backend Structured Logs
+    async function loadBackendLogs() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/logs`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.logs && data.logs.length > 0) {
+            logEntries.length = 0;
+            data.logs.forEach(l => {
+              logEntries.push({
+                time: l.timestamp,
+                step: l.step,
+                desc: l.activity,
+                status: l.status,
+                class: l.status === 'VALIDATED' ? 'valid' : (l.status === 'SKIPPED' ? 'alert' : 'error')
+              });
+            });
+            renderLogTerminal();
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Connect WebSocket for Live Real-Time Telemetry Streaming
+    function initTelemetryWebSocket() {
+      try {
+        const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProto}//${window.location.host}/ws/telemetry`;
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('[AI-HAR] WebSocket Telemetry Stream connected at 10Hz');
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.latency_ms) {
+              const el = document.getElementById('teleInferenceSpeed');
+              if (el) el.textContent = `${data.latency_ms} ms (EDGE)`;
+            }
+            if (data.kinematics) {
+              // Update live telemetry display
+              const knee = document.getElementById('angleKnee');
+              if (knee) knee.textContent = `${data.kinematics.knee_angle_deg}°`;
+              const spine = document.getElementById('angleSpine');
+              if (spine) spine.textContent = `${data.kinematics.spine_pitch_deg}°`;
+            }
+          } catch (e) {}
+        };
+
+        ws.onerror = () => {};
+        ws.onclose = () => {
+          setTimeout(initTelemetryWebSocket, 5000);
+        };
+      } catch (e) {}
+    }
+    initTelemetryWebSocket();
+
+    // IP Streaming Connect Action (Connected to Backend)
+    document.getElementById('btnConnectStream').addEventListener('click', async () => {
+      const ip = document.getElementById('streamIpInput').value.trim() || '192.168.1.140';
+      audioEngine.playBeep(1500, 0.1);
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/stream/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ destination_ip: ip, port: 8554, protocol: 'RTSP', bitrate_kbps: 4000 })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          alert(`[BACKEND STREAMING NOTIFICATION]\n${data.status_message}\nPackets Sent: ${data.packets_sent}\nDestination: ${data.destination_ip}:${data.port}`);
+          loadBackendLogs();
+          return;
+        }
+      } catch (e) {}
+
+      alert(`[STREAMING INTERFACE NOTE]\nDestination: ${ip}\nStatus: Stream channel initialized in standalone simulation mode.\nNote: Live network streaming requires backend RTSP/WebRTC streamer.`);
+    });
+  </script>
+</body>
+</html>

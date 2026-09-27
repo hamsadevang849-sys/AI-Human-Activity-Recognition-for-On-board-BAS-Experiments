@@ -65,14 +65,29 @@ class StorageInfo(BaseModel):
     recording_active: bool
     files: List[StorageFile]
 
+class CameraRecognitionRequest(BaseModel):
+    camera_id: str = "CAM_01"
+    step_index: int = 2
+    action_title: Optional[str] = None
+    deviation_type: Optional[str] = "nominal"  # "nominal", "skipped", "out_of_order"
+    confidence: Optional[float] = 0.968
+
+class CameraSelectRequest(BaseModel):
+    camera_id: str = "CAM_01"
+
 class SystemStatus(BaseModel):
     mission: str = "BAS-EXP-001"
     ai_core: str = "ONLINE (STANDALONE EDGE TPU)"
     mode: str = "STANDALONE / NO CLOUD REQUIRED"
     camera_01: str = "ONLINE (1080p 60FPS)"
+    active_camera: str = "CAM_01"
     comm_delay: str = "1.28s - 24m (GROUND CONSTRAINED)"
     local_inference_ms: float = 11.4
     active_protocol: str = "BAS-EXP-04: Biological Specimen Extraction"
     current_step: int = 2
+    detected_activity: str = "RETRIEVE SAMPLE CONTAINER"
+    confidence: float = 0.968
     sequence_status: str = "VALIDATING"
+    deviation_type: str = "nominal"
     storage_state: str = "RECORDING ACTIVE"
+    vocal_alert: str = "NONE"

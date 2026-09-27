@@ -1,0 +1,2697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission Vision Dashboard // AI-HAR Bharatiya Antariksh Station</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- MediaPipe CDN with graceful fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      --bg: #02070d;
+      --bg-surface: #05101a;
+      --bg-elevated: #091927;
+      --panel: rgba(7, 20, 32, 0.82);
+      --panel-strong: rgba(10, 26, 42, 0.95);
+      --panel-border: rgba(140, 236, 255, 0.2);
+      --panel-border-bright: rgba(140, 236, 255, 0.5);
+      --text: #edf6fc;
+      --text-muted: #879ca8;
+      --text-dim: #4f6775;
+      --cyan: #8cecff;
+      --cyan-glow: rgba(140, 236, 255, 0.4);
+      --blue: #4fa8ff;
+      --green: #8cecc1;
+      --green-glow: rgba(140, 236, 193, 0.4);
+      --amber: #ffbe6b;
+      --red: #ff5f7e;
+      --red-glow: rgba(255, 95, 126, 0.45);
+      --line: rgba(255, 255, 255, 0.08);
+      --hud-font: 'JetBrains Mono', monospace;
+      --title-font: 'Space Grotesk', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Subtle background grid pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 50% 20%, rgba(14, 42, 66, 0.4) 0%, transparent 70%),
+        repeating-linear-gradient(0deg, rgba(140, 236, 255, 0.02) 0px, rgba(140, 236, 255, 0.02) 1px, transparent 1px, transparent 40px),
+        repeating-linear-gradient(90deg, rgba(140, 236, 255, 0.02) 0px, rgba(140, 236, 255, 0.02) 1px, transparent 1px, transparent 40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Tactical Corner Reticle Frame */
+    .hud-frame-corners {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .hud-corner {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-color: rgba(140, 236, 255, 0.35);
+    }
+    .hud-corner.tl { top: 12px; left: 12px; border-top: 2px solid; border-left: 2px solid; }
+    .hud-corner.tr { top: 12px; right: 12px; border-top: 2px solid; border-right: 2px solid; }
+    .hud-corner.bl { bottom: 12px; left: 12px; border-bottom: 2px solid; border-left: 2px solid; }
+    .hud-corner.br { bottom: 12px; right: 12px; border-bottom: 2px solid; border-right: 2px solid; }
+
+    /* Top Command Header */
+    header.command-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(4, 13, 22, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-logo {
+      font-family: var(--title-font);
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-logo span {
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan-glow);
+    }
+    .badge-edge {
+      font-family: var(--hud-font);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+      background: rgba(140, 236, 255, 0.1);
+      border: 1px solid rgba(140, 236, 255, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.12em;
+    }
+
+    .mission-telemetry-strip {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: var(--hud-font);
+      font-size: 11px;
+    }
+    .telem-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .telem-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+    .telem-val {
+      font-weight: 600;
+      color: #fff;
+    }
+    .telem-val.cyan { color: var(--cyan); }
+    .telem-val.green { color: var(--green); }
+    .telem-val.amber { color: var(--amber); }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-header {
+      background: rgba(140, 236, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--panel-border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-family: var(--hud-font);
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-header:hover {
+      background: rgba(140, 236, 255, 0.18);
+      border-color: var(--cyan);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(140, 236, 255, 0.25);
+    }
+    .btn-header.primary {
+      background: linear-gradient(135deg, rgba(140, 236, 255, 0.25), rgba(79, 168, 255, 0.25));
+      border-color: var(--cyan);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 0 16px rgba(140, 236, 255, 0.3);
+    }
+    .btn-header.primary:hover {
+      background: linear-gradient(135deg, rgba(140, 236, 255, 0.4), rgba(79, 168, 255, 0.4));
+      box-shadow: 0 0 24px rgba(140, 236, 255, 0.5);
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-container {
+      position: relative;
+      z-index: 10;
+      padding: 18px 24px 32px;
+      max-width: 1720px;
+      margin: 0 auto;
+    }
+
+    /* Top Quick Status Ribbon */
+    .status-ribbon {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .ribbon-card {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .ribbon-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: var(--cyan);
+    }
+    .ribbon-card.green::before { background: var(--green); }
+    .ribbon-card.amber::before { background: var(--amber); }
+    .ribbon-card.red::before { background: var(--red); }
+
+    .ribbon-title {
+      font-family: var(--hud-font);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+    }
+    .ribbon-val {
+      font-family: var(--title-font);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ribbon-sub {
+      font-family: var(--hud-font);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse-dot 1.4s infinite alternate;
+    }
+    .pulse-dot.red {
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+    }
+    @keyframes pulse-dot {
+      0% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1.15); }
+    }
+
+    /* Main Grid: Left Video Deck + Right Telemetry Decks */
+    .dashboard-deck-grid {
+      display: grid;
+      grid-template-columns: minmax(620px, 1.4fr) minmax(420px, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 1180px) {
+      .dashboard-deck-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Video Deck */
+    .video-deck-card {
+      background: var(--panel-strong);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    /* Camera Source Selector Tabs */
+    .source-tabs-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 12px;
+    }
+    .cam-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .cam-tab-btn {
+      background: rgba(140, 236, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      font-family: var(--hud-font);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .cam-tab-btn:hover {
+      background: rgba(140, 236, 255, 0.12);
+      color: #fff;
+    }
+    .cam-tab-btn.active {
+      background: rgba(140, 236, 255, 0.22);
+      border-color: var(--cyan);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(140, 236, 255, 0.35);
+      font-weight: 700;
+    }
+    .cam-tab-btn.webcam-btn {
+      border-color: rgba(140, 236, 193, 0.4);
+    }
+    .cam-tab-btn.webcam-btn.active {
+      background: rgba(140, 236, 193, 0.22);
+      border-color: var(--green);
+      box-shadow: 0 0 16px rgba(140, 236, 193, 0.4);
+    }
+
+    /* Creative Computer Vision Mode Selector Toolbar */
+    .vision-modes-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(4, 14, 24, 0.9);
+      border: 1px solid var(--panel-border);
+      padding: 6px 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .vision-mode-label {
+      font-family: var(--hud-font);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--cyan);
+      font-weight: 700;
+      white-space: nowrap;
+      margin-right: 4px;
+    }
+    .btn-vision-mode {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: var(--hud-font);
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .btn-vision-mode:hover {
+      background: rgba(140, 236, 255, 0.1);
+      color: #fff;
+    }
+    .btn-vision-mode.active {
+      background: rgba(140, 236, 255, 0.25);
+      border-color: var(--cyan);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(140, 236, 255, 0.35);
+    }
+    .btn-vision-mode.thermal.active {
+      background: rgba(255, 110, 40, 0.25);
+      border-color: #ff6e28;
+      box-shadow: 0 0 10px rgba(255, 110, 40, 0.4);
+    }
+    .btn-vision-mode.edges.active {
+      background: rgba(140, 236, 193, 0.25);
+      border-color: var(--green);
+      box-shadow: 0 0 10px var(--green-glow);
+    }
+
+    /* Video Viewport Stage */
+    .video-viewport-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 380px;
+      max-height: 620px;
+      background: #01060c;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border-bright);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Video & Canvas Elements */
+    #webcamVideo {
+      display: none;
+    }
+    #opencvVideoImg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      display: none;
+    }
+    #viewportCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      display: block;
+      cursor: crosshair;
+    }
+    /* Hidden Canvas for Optical Differencing */
+    #diffCanvas {
+      display: none;
+    }
+
+    /* Viewport Floating Overlays */
+    .viewport-overlay-header {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .vp-badge {
+      background: rgba(2, 10, 18, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--panel-border);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: var(--hud-font);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--cyan);
+      letter-spacing: 0.08em;
+    }
+    .vp-badge.live-tag {
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Prompt Bar for Camera Connection */
+    .camera-connect-prompt {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      background: rgba(2, 7, 13, 0.88);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      gap: 16px;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    .camera-connect-prompt.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .connect-icon-pulse {
+      font-size: 48px;
+      animation: float-icon 2s ease-in-out infinite alternate;
+    }
+    @keyframes float-icon {
+      0% { transform: translateY(-4px); }
+      100% { transform: translateY(6px); }
+    }
+    .connect-title {
+      font-family: var(--title-font);
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .connect-title span { color: var(--cyan); }
+    .connect-desc {
+      max-width: 480px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .btn-connect-camera-hero {
+      background: linear-gradient(135deg, #094770, #0d70ad);
+      border: 1px solid var(--cyan);
+      color: #fff;
+      font-family: var(--title-font);
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 0 30px rgba(140, 236, 255, 0.4);
+      transition: all 0.25s ease;
+    }
+    .btn-connect-camera-hero:hover {
+      background: linear-gradient(135deg, #0f5b8f, #148fd8);
+      transform: translateY(-2px);
+      box-shadow: 0 0 45px rgba(140, 236, 255, 0.6);
+    }
+
+    /* Viewport Floating Bottom Bar */
+    .viewport-overlay-footer {
+      position: absolute;
+      bottom: 12px;
+      left: 14px;
+      right: 14px;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(2, 10, 18, 0.82);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-family: var(--hud-font);
+      font-size: 11px;
+      pointer-events: auto;
+    }
+    .vp-footer-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--text-muted);
+    }
+    .vp-footer-left strong { color: #fff; }
+    .vp-footer-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-vp-mini {
+      background: rgba(140, 236, 255, 0.1);
+      border: 1px solid var(--panel-border);
+      color: #fff;
+      font-family: var(--hud-font);
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .btn-vp-mini:hover {
+      background: rgba(140, 236, 255, 0.25);
+      border-color: var(--cyan);
+    }
+
+    /* Layer Toggles & Interactive AR Tools */
+    .viewport-tools-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-top: 4px;
+    }
+    .layer-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--hud-font);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .layer-checkboxes label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .layer-checkboxes input[type="checkbox"] {
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    /* Hands-Free Gesture Guide Banner */
+    .gesture-guide-banner {
+      background: rgba(6, 18, 30, 0.85);
+      border: 1px solid rgba(140, 236, 255, 0.25);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .gesture-items {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-family: var(--hud-font);
+      font-size: 10px;
+    }
+    .g-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(140, 236, 255, 0.08);
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #fff;
+    }
+
+    /* Right Telemetry Decks */
+    .telemetry-deck {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .telemetry-box {
+      background: var(--panel-strong);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+    .box-title {
+      font-family: var(--title-font);
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .box-tag {
+      font-family: var(--hud-font);
+      font-size: 9px;
+      color: var(--cyan);
+      background: rgba(140, 236, 255, 0.1);
+      border: 1px solid rgba(140, 236, 255, 0.3);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    /* Biomechanical Kinematics Gauges Grid */
+    .kin-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .kin-card {
+      background: rgba(5, 15, 25, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kin-card-label {
+      font-family: var(--hud-font);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+    .kin-card-val {
+      font-family: var(--title-font);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .kin-meter {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .kin-meter span {
+      display: block;
+      height: 100%;
+      background: var(--cyan);
+      border-radius: 2px;
+      transition: width 0.15s ease;
+      box-shadow: 0 0 8px var(--cyan);
+    }
+    .kin-meter.green span {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    /* State Machine Protocol Sequence Steps */
+    .protocol-step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .protocol-step-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(5, 15, 25, 0.7);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .protocol-step-item:hover {
+      background: rgba(140, 236, 255, 0.08);
+      border-color: var(--cyan);
+    }
+    .protocol-step-item.active {
+      background: rgba(140, 236, 255, 0.15);
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(140, 236, 255, 0.2);
+    }
+    .protocol-step-item.completed {
+      border-color: rgba(140, 236, 193, 0.4);
+    }
+    .protocol-step-item.deviation {
+      border-color: var(--red);
+      background: rgba(255, 95, 126, 0.12);
+    }
+
+    .psi-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .psi-idx {
+      font-family: var(--hud-font);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      width: 20px;
+    }
+    .psi-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .psi-badge {
+      font-family: var(--hud-font);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .psi-badge.validated {
+      background: rgba(140, 236, 193, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(140, 236, 193, 0.35);
+    }
+    .psi-badge.current {
+      background: rgba(140, 236, 255, 0.2);
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      animation: pulse-dot 1s infinite alternate;
+    }
+    .psi-badge.skipped {
+      background: rgba(255, 95, 126, 0.2);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+    .psi-badge.pending {
+      color: var(--text-dim);
+    }
+
+    /* Simulation & Protocol Deviation Buttons */
+    .protocol-controls-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-ctrl {
+      background: rgba(140, 236, 255, 0.08);
+      border: 1px solid var(--panel-border);
+      color: #fff;
+      font-family: var(--hud-font);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .btn-ctrl:hover {
+      background: rgba(140, 236, 255, 0.18);
+      border-color: var(--cyan);
+    }
+    .btn-ctrl.alert-skip {
+      border-color: rgba(255, 190, 107, 0.4);
+      color: var(--amber);
+    }
+    .btn-ctrl.alert-skip:hover {
+      background: rgba(255, 190, 107, 0.2);
+    }
+    .btn-ctrl.alert-dev {
+      border-color: rgba(255, 95, 126, 0.4);
+      color: var(--red);
+    }
+    .btn-ctrl.alert-dev:hover {
+      background: rgba(255, 95, 126, 0.2);
+    }
+    .btn-ctrl.auto-cycle.running {
+      background: rgba(140, 236, 193, 0.25);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    /* Live Telemetry Downlink Log Terminal */
+    .log-terminal {
+      background: #01060a;
+      border: 1px solid rgba(140, 236, 255, 0.25);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: var(--hud-font);
+      font-size: 10px;
+      height: 140px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .log-line {
+      display: flex;
+      gap: 8px;
+      line-height: 1.4;
+    }
+    .log-time { color: var(--text-dim); }
+    .log-step { color: var(--cyan); }
+    .log-desc { color: #edf6fc; flex: 1; }
+    .log-stat { font-weight: 700; }
+    .log-stat.VALIDATED { color: var(--green); }
+    .log-stat.SKIPPED { color: var(--amber); }
+    .log-stat.ALERT { color: var(--red); }
+    .log-stat.NOMINAL { color: var(--cyan); }
+
+    /* Snapshot Flash Animation */
+    .snapshot-flash {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10000;
+      transition: opacity 0.1s ease;
+    }
+    .snapshot-flash.active {
+      opacity: 0.8;
+      transition: none;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      header.command-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .mission-telemetry-strip {
+        display: none;
+      }
+      .kin-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Flash for Snapshots -->
+  <div class="snapshot-flash" id="snapFlash"></div>
+
+  <!-- Tactical HUD Frame Corners -->
+  <div class="hud-frame-corners">
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+  </div>
+
+  <!-- Top Aerospace Mission Command Header -->
+  <header class="command-header">
+    <div class="brand-group">
+      <a href="/" class="btn-header" title="Return to Main Mission Website" style="background: rgba(140, 236, 255, 0.18); border-color: var(--cyan); color: #fff; font-weight: 700; padding: 7px 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 0 16px rgba(140, 236, 255, 0.4); text-decoration: none;">
+        <span style="font-size: 13px;">◀</span> RETURN TO MAIN WEBSITE
+      </a>
+
+      <a href="/" class="brand-logo" title="Back to Main Mission Overview">
+        <span>ORBITAL</span> / BAS-HAR
+      </a>
+      <span class="badge-edge">MISSION VISION DECK</span>
+      <span class="badge-edge" style="color:var(--green); border-color:var(--green);">EXP-04 ONLINE</span>
+    </div>
+
+    <div class="mission-telemetry-strip">
+      <div class="telem-item">
+        <span class="telem-label">STATION ALTITUDE</span>
+        <span class="telem-val cyan" id="teleAltitude">412.8 km</span>
+      </div>
+      <div class="telem-item">
+        <span class="telem-label">ORBITAL INCLINATION</span>
+        <span class="telem-val">51.64°</span>
+      </div>
+      <div class="telem-item">
+        <span class="telem-label">MICROGRAVITY ACCEL</span>
+        <span class="telem-val green" id="teleGforce">0.0024 g</span>
+      </div>
+      <div class="telem-item">
+        <span class="telem-label">MISSION UTC TIME</span>
+        <span class="telem-val cyan" id="teleClock">12:00:00 UTC</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-header" id="btnAudioToggle" title="Toggle Synthesized Voice & Sonar Audio">
+        <span id="audioIcon">🔊</span> <span id="audioLabel">AUDIO: ON</span>
+      </button>
+
+      <button class="btn-header" id="btnCaptureSnapshot" title="Take timestamped HUD snapshot">
+        <span>📸</span> SNAPSHOT
+      </button>
+
+      <button class="btn-header" id="btnFullscreen" title="Toggle Fullscreen Cockpit Mode">
+        <span>⛶</span> FULLSCREEN
+      </button>
+
+      <a href="/" class="btn-header primary" title="Return to Main Mission Website" style="font-weight: 700; font-size: 11px; padding: 7px 16px; background: linear-gradient(135deg, rgba(140, 236, 255, 0.35), rgba(79, 168, 255, 0.35)); border-color: var(--cyan); box-shadow: 0 0 20px rgba(140, 236, 255, 0.5); text-decoration: none;">
+        <span>◀</span> BACK TO STATION OVERVIEW
+      </a>
+    </div>
+  </header>
+
+  <!-- Sticky Tactical Sub-Header Breadcrumb & Quick Return Bar -->
+  <div style="background: rgba(4, 14, 24, 0.95); border-bottom: 1px solid var(--panel-border); padding: 8px 24px; display: flex; justify-content: space-between; align-items: center; font-family: var(--hud-font); font-size: 11px; position: sticky; top: 53px; z-index: 99; backdrop-filter: blur(12px);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="/" style="color: var(--cyan); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+        <span style="font-size: 13px;">◀</span> MAIN MISSION SITE (INDEX)
+      </a>
+      <span style="color: var(--text-dim);">/</span>
+      <span style="color: #fff; font-weight: 600;">CV DASHBOARD &amp; LAPTOP CAMERA CONSOLE</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <span style="color: var(--text-dim);">SHORTCUT: PRESS <kbd style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:3px; color:#fff;">ESC</kbd> TO RETURN</span>
+      <a href="/" style="color: var(--green); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+        <span>🏠</span> EXIT TO HOMEPAGE ◀
+      </a>
+    </div>
+  </div>
+
+  <!-- Floating Quick-Return Button at Bottom Left -->
+  <a href="/" id="floatingReturnBtn" style="position: fixed; bottom: 20px; left: 24px; z-index: 9999; background: rgba(3, 14, 25, 0.92); backdrop-filter: blur(14px); border: 1px solid var(--cyan); color: #fff; padding: 9px 18px; border-radius: 30px; font-family: var(--hud-font); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 8px 28px rgba(0,0,0,0.8), 0 0 20px rgba(140,236,255,0.45); transition: all 0.2s ease;">
+    <span>◀</span> RETURN TO MAIN WEBSITE
+  </a>
+
+  <!-- Main Dashboard Content -->
+  <main class="dashboard-container">
+
+    <!-- Top Quick Status Ribbon -->
+    <div class="status-ribbon">
+      <div class="ribbon-card green">
+        <span class="ribbon-title">ACTIVE OPTICAL SENSOR</span>
+        <span class="ribbon-val" id="ribbonCamSource">
+          <span class="pulse-dot" id="camPulseDot"></span>
+          <span id="ribbonCamName">LAPTOP CAMERA</span>
+        </span>
+        <span class="ribbon-sub" id="ribbonCamSub">Direct MediaPipe & Canvas AI</span>
+      </div>
+
+      <div class="ribbon-card">
+        <span class="ribbon-title">VISION ENGINE MODE</span>
+        <span class="ribbon-val cyan" id="ribbonVisionMode">CYBERNETIC HUD</span>
+        <span class="ribbon-sub" id="ribbonVisionSub">Biomechanical 34-Joint Overlay</span>
+      </div>
+
+      <div class="ribbon-card">
+        <span class="ribbon-title">RECOGNIZED ACTIVITY</span>
+        <span class="ribbon-val" id="ribbonDetectedAction">EXTRACTING CRYO VIAL</span>
+        <span class="ribbon-sub" id="ribbonConfidence">Confidence: 96.8%</span>
+      </div>
+
+      <div class="ribbon-card green">
+        <span class="ribbon-title">PROTOCOL STATE MACHINE</span>
+        <span class="ribbon-val green" id="ribbonSeqStatus">STEP 02 VALIDATED</span>
+        <span class="ribbon-sub">Deviation: Nominal Order</span>
+      </div>
+
+      <div class="ribbon-card">
+        <span class="ribbon-title">LOCAL NVMe ARCHIVE</span>
+        <span class="ribbon-val cyan" id="ribbonStorage">REC ON (84% FREE)</span>
+        <span class="ribbon-sub">Lightweight .txt Log Active</span>
+      </div>
+    </div>
+
+    <!-- Main Deck Grid -->
+    <div class="dashboard-deck-grid">
+
+      <!-- LEFT COLUMN: Main Video Deck & Creative Vision Tools -->
+      <div class="video-deck-card">
+
+        <!-- Camera Source Selection Toolbar -->
+        <div class="source-tabs-row">
+          <div class="cam-tabs">
+            <button class="cam-tab-btn webcam-btn active" id="tabLiveWebcam" data-source="WEBCAM">
+              <span>🎥</span> LAPTOP WEBCAM (DIRECT AI)
+            </button>
+            <button class="cam-tab-btn" id="tabOpencvStream" data-source="OPENCV">
+              <span>🐍</span> OPENCV PYTHON STREAM
+            </button>
+            <button class="cam-tab-btn" id="tabCam01" data-source="CAM_01">
+              <span>📹</span> CAM 01 // OVERHEAD
+            </button>
+            <button class="cam-tab-btn" id="tabCam02" data-source="CAM_02">
+              <span>🔬</span> CAM 02 // CENTRIFUGE
+            </button>
+            <button class="cam-tab-btn" id="tabCam03" data-source="CAM_03">
+              <span>🧤</span> CAM 03 // GLOVEBOX
+            </button>
+          </div>
+
+          <div style="font-family:var(--hud-font); font-size:10px; color:var(--cyan); display:flex; align-items:center; gap:6px;">
+            <span>EST. LATENCY:</span>
+            <strong id="fpsBadge" style="color:#fff;">60.0 FPS // 7.4 ms</strong>
+          </div>
+        </div>
+
+        <!-- Creative Computer Vision Mode Selection Bar -->
+        <div class="vision-modes-toolbar">
+          <span class="vision-mode-label">⚡ CV MODES:</span>
+          <button class="btn-vision-mode active" id="modeCybernetic" data-mode="cybernetic">
+            <span>🎯</span> Cybernetic HUD
+          </button>
+          <button class="btn-vision-mode thermal" id="modeThermal" data-mode="thermal">
+            <span>🔥</span> Thermal IR Spectrometry
+          </button>
+          <button class="btn-vision-mode edges" id="modeEdges" data-mode="edges">
+            <span>🌐</span> Sobel Edge Matrix
+          </button>
+          <button class="btn-vision-mode" id="modeKinetic" data-mode="motion_trails">
+            <span>✨</span> Kinetic Motion Trails
+          </button>
+          <button class="btn-vision-mode" id="modeLidar" data-mode="lidar">
+            <span>📡</span> 3D LiDAR Scanner
+          </button>
+        </div>
+
+        <!-- Video Viewport Stage -->
+        <div class="video-viewport-container" id="videoViewport">
+          <!-- Hidden Native Webcam Video Element -->
+          <video id="webcamVideo" playsinline autoplay muted></video>
+          
+          <!-- OpenCV Stream Image Element -->
+          <img id="opencvVideoImg" alt="Live OpenCV Video Stream" />
+
+          <!-- Main Interactive Overlay Processing Canvas -->
+          <canvas id="viewportCanvas"></canvas>
+          <canvas id="diffCanvas" width="160" height="120"></canvas>
+
+          <!-- Top Viewport Floating Badges -->
+          <div class="viewport-overlay-header">
+            <span class="vp-badge live-tag">
+              <span class="pulse-dot"></span>
+              <span id="vpSensorLabel">LAPTOP OPTICAL SENSOR // HIGH-FPS EDGE HAR</span>
+            </span>
+            <span class="vp-badge" id="vpModeBadge">MODE: CYBERNETIC SKELETON</span>
+          </div>
+
+          <!-- One-Click Camera Connect Prompt (Shown when camera is standby) -->
+          <div class="camera-connect-prompt" id="camPrompt">
+            <div class="connect-icon-pulse">🎥</div>
+            <div class="connect-title">Connect <span>Laptop Camera</span></div>
+            <p class="connect-desc">
+              Activate your laptop's camera sensor to run real-time on-board computer vision: 
+              <strong>34-joint skeletal tracking</strong>, <strong>biomechanical ergonomics</strong>, 
+              <strong>interactive AR apparatus collision</strong>, and <strong>hands-free gesture controls</strong>.
+            </p>
+            <button class="btn-connect-camera-hero" id="btnConnectCameraHero">
+              <span>⚡</span> ACTIVATE LAPTOP CAMERA
+            </button>
+            <div style="font-family:var(--hud-font); font-size:11px; color:var(--text-dim);">
+              Zero Cloud Upload • 100% Local Processing • Hardware Accelerated
+            </div>
+          </div>
+
+          <!-- Bottom Viewport Telemetry Footer -->
+          <div class="viewport-overlay-footer">
+            <div class="vp-footer-left">
+              <span>ACTION: <strong id="vpActionText">RETRIEVE CRYO CONTAINER</strong></span>
+              <span>CONF: <strong id="vpConfText" style="color:var(--green);">96.8%</strong></span>
+              <span>MOTION: <strong id="vpMotionText" style="color:var(--cyan);">0.74 kW/m²</strong></span>
+            </div>
+            <div class="vp-footer-controls">
+              <button class="btn-vp-mini" id="btnTogglePauseAI" title="Pause or Resume Computer Vision Inference">
+                <span>⏸</span> PAUSE AI
+              </button>
+              <button class="btn-vp-mini" id="btnDisconnectCam" title="Disconnect camera sensor">
+                <span>🔌</span> DISCONNECT
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer Toggles & Interactive AR Tools -->
+        <div class="viewport-tools-bar">
+          <div class="layer-checkboxes">
+            <span style="font-weight:700; color:#fff;">HUD LAYERS:</span>
+            <label><input type="checkbox" id="chkPose" checked> Skeleton Joints</label>
+            <label><input type="checkbox" id="chkTargetBoxes" checked> Bounding Boxes</label>
+            <label><input type="checkbox" id="chkArTools" checked> AR Station Tools</label>
+            <label><input type="checkbox" id="chkGripVectors" checked> Proximity Vectors</label>
+            <label><input type="checkbox" id="chkBiometrics" checked> Angle Arcs</label>
+          </div>
+
+          <div style="font-family:var(--hud-font); font-size:11px; color:var(--text-muted);">
+            INTERACTIVE AR: <span style="color:var(--green); font-weight:700;">HAND COLLISION ACTIVE</span>
+          </div>
+        </div>
+
+        <!-- Hands-Free Gesture Guide Banner -->
+        <div class="gesture-guide-banner">
+          <div style="font-family:var(--hud-font); font-size:10px; color:var(--cyan); font-weight:700;">
+            👋 ZERO-TOUCH GESTURE CONTROLS:
+          </div>
+          <div class="gesture-items">
+            <span class="g-badge"><span>👋</span> Wave = Advance Step</span>
+            <span class="g-badge"><span>🤏</span> Pinch = Lock Specimen</span>
+            <span class="g-badge"><span>✌️</span> Victory = Validate Step</span>
+            <span class="g-badge"><span>✋</span> Hold = Pause State</span>
+            <span class="g-badge" style="color:var(--amber);"><span>🚨</span> Fast Wave = Anomaly Alert</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Biomechanical Kinematics, State Machine & Audit Terminal -->
+      <div class="telemetry-deck">
+
+        <!-- Telemetry Box 1: Biomechanical Joint Kinematics -->
+        <div class="telemetry-box">
+          <div class="box-header">
+            <div class="box-title">
+              <span>🦾</span> BIOMECHANICAL JOINT KINEMATICS
+            </div>
+            <span class="box-tag" id="postureComplianceTag">NBP COMPLIANT</span>
+          </div>
+
+          <div class="kin-grid">
+            <div class="kin-card">
+              <span class="kin-card-label">ELBOW FLEXION ANGLE</span>
+              <div class="kin-card-val">
+                <span id="kinElbowVal">84.2°</span>
+                <span style="font-size:10px; color:var(--text-dim); font-family:var(--hud-font);">NOMINAL</span>
+              </div>
+              <div class="kin-meter green"><span id="meterElbow" style="width: 58%;"></span></div>
+            </div>
+
+            <div class="kin-card">
+              <span class="kin-card-label">SPINE PITCH TILT</span>
+              <div class="kin-card-val">
+                <span id="kinSpineVal">11.4°</span>
+                <span style="font-size:10px; color:var(--text-dim); font-family:var(--hud-font);">ZERO-G FLOAT</span>
+              </div>
+              <div class="kin-meter"><span id="meterSpine" style="width: 32%;"></span></div>
+            </div>
+
+            <div class="kin-card">
+              <span class="kin-card-label">HAND-OBJECT PROXIMITY</span>
+              <div class="kin-card-val">
+                <span id="kinDistVal" style="color:var(--cyan);">3.2 cm</span>
+                <span style="font-size:10px; color:var(--green); font-family:var(--hud-font);">CONTACT</span>
+              </div>
+              <div class="kin-meter green"><span id="meterDist" style="width: 82%;"></span></div>
+            </div>
+
+            <div class="kin-card">
+              <span class="kin-card-label">OPTICAL KINETIC FLUX</span>
+              <div class="kin-card-val">
+                <span id="kinFluxVal">0.74 kW/m²</span>
+                <span style="font-size:10px; color:var(--text-dim); font-family:var(--hud-font);">STEADY</span>
+              </div>
+              <div class="kin-meter"><span id="meterFlux" style="width: 48%;"></span></div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px; font-family:var(--hud-font); font-size:10px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
+            <span>ASTRONAUT ERGONOMICS: <strong style="color:var(--green);" id="kinPostureStatus">NEUTRAL BODY POSTURE (NBP)</strong></span>
+            <span>GRIP: <strong style="color:var(--cyan);" id="kinGripState">PINCH_LOCK</strong></span>
+          </div>
+        </div>
+
+        <!-- Telemetry Box 2: Deterministic Sequence Validator & Anomaly Engine -->
+        <div class="telemetry-box">
+          <div class="box-header">
+            <div class="box-title">
+              <span>🧬</span> PROTOCOL STATE ENGINE (EXP-04)
+            </div>
+            <span class="box-tag" id="seqEngineState">ACTIVE RUNTIME</span>
+          </div>
+
+          <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
+            Scientific Protocol: <strong>Biological Specimen Extraction & Centrifuge Activation</strong>
+          </p>
+
+          <div class="protocol-step-list" id="protocolStepsList">
+            <div class="protocol-step-item completed" data-step="1">
+              <div class="psi-left">
+                <span class="psi-idx">01</span>
+                <span class="psi-title">Sterilize Payload Biosafety Rack</span>
+              </div>
+              <span class="psi-badge validated">VALIDATED</span>
+            </div>
+
+            <div class="protocol-step-item active" data-step="2">
+              <div class="psi-left">
+                <span class="psi-idx">02</span>
+                <span class="psi-title">Extract Cryogenic Specimen Container</span>
+              </div>
+              <span class="psi-badge current">IN PROGRESS</span>
+            </div>
+
+            <div class="protocol-step-item" data-step="3">
+              <div class="psi-left">
+                <span class="psi-idx">03</span>
+                <span class="psi-title">Insert Specimen Into Centrifuge Slot</span>
+              </div>
+              <span class="psi-badge pending">PENDING</span>
+            </div>
+
+            <div class="protocol-step-item" data-step="4">
+              <div class="psi-left">
+                <span class="psi-idx">04</span>
+                <span class="psi-title">Engage Centrifuge 1200 RPM Spin Cycle</span>
+              </div>
+              <span class="psi-badge pending">PENDING</span>
+            </div>
+
+            <div class="protocol-step-item" data-step="5">
+              <div class="psi-left">
+                <span class="psi-idx">05</span>
+                <span class="psi-title">Record Optical Density Telemetry</span>
+              </div>
+              <span class="psi-badge pending">PENDING</span>
+            </div>
+          </div>
+
+          <!-- Protocol Deviation Test Controls -->
+          <div class="protocol-controls-row">
+            <button class="btn-ctrl" id="btnNextStep">
+              <span>▶</span> ADVANCE
+            </button>
+            <button class="btn-ctrl alert-skip" id="btnSkipStep">
+              <span>⚠️</span> SKIP STEP 3
+            </button>
+            <button class="btn-ctrl alert-dev" id="btnOrderDev">
+              <span>🛑</span> OUT-OF-ORDER
+            </button>
+            <button class="btn-ctrl auto-cycle" id="btnAutoRun">
+              <span>⚡</span> AUTO-CYCLE
+            </button>
+            <button class="btn-ctrl" id="btnResetProtocol">
+              <span>🔄</span> RESET
+            </button>
+          </div>
+        </div>
+
+        <!-- Telemetry Box 3: Earth Downlink Audit Logs & Storage -->
+        <div class="telemetry-box">
+          <div class="box-header">
+            <div class="box-title">
+              <span>🛰️</span> EARTH DOWNLINK AUDIT STREAM
+            </div>
+            <button class="btn-vp-mini" id="btnExportLog" title="Download lightweight .txt downlink log">
+              <span>📥</span> EXPORT .TXT
+            </button>
+          </div>
+
+          <div class="log-terminal" id="logTerminal">
+            <!-- Dynamic Log Stream Lines -->
+            <div class="log-line">
+              <span class="log-time">[12:00:01]</span>
+              <span class="log-step">INIT</span>
+              <span class="log-desc">On-board AI Vision Runtime initialized. Optical channel online.</span>
+              <span class="log-stat NOMINAL">NOMINAL</span>
+            </div>
+            <div class="log-line">
+              <span class="log-time">[12:00:15]</span>
+              <span class="log-step">STEP 01</span>
+              <span class="log-desc">Sterilize Payload Biosafety Rack verified via optical inspection.</span>
+              <span class="log-stat VALIDATED">VALIDATED</span>
+            </div>
+            <div class="log-line">
+              <span class="log-time">[12:00:44]</span>
+              <span class="log-step">STEP 02</span>
+              <span class="log-desc">Extract Cryogenic Specimen Container in progress. Hand-grip active.</span>
+              <span class="log-stat VALIDATED">CURRENT</span>
+            </div>
+          </div>
+
+          <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; font-family:var(--hud-font); font-size:10px; color:var(--text-dim);">
+            <span>DOWNLINK COMPRESSION: <strong style="color:#fff;">98.4% (&lt;4.2 KB)</strong></span>
+            <span>STORAGE: <strong style="color:var(--cyan);" id="nvmeStorageLabel">NVMe REC ACTIVE</strong></span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       JAVASCRIPT: CAMERA ENGINE, CREATIVE VISION SHADERS & AR INTERACTION
+       ========================================================================= -->
+  <script>
+    // Audio Synthesizer Engine
+    class SpaceAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playTone(freq = 880, duration = 0.08, type = 'sine', gainVal = 0.08) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+      playLockChime() {
+        if (!this.enabled) return;
+        this.playTone(1200, 0.06, 'triangle', 0.12);
+        setTimeout(() => this.playTone(1760, 0.12, 'sine', 0.1), 60);
+      }
+      playAlertTone() {
+        if (!this.enabled) return;
+        this.playTone(480, 0.15, 'sawtooth', 0.15);
+        setTimeout(() => this.playTone(360, 0.22, 'sawtooth', 0.18), 120);
+      }
+      playSonarPing() {
+        if (!this.enabled) return;
+        this.playTone(2100, 0.18, 'sine', 0.04);
+      }
+    }
+
+    const audioEngine = new SpaceAudioEngine();
+
+    // Voice Synthesis Assistant
+    function speakAIVoice(phrase) {
+      if (!audioEngine.enabled) return;
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(phrase);
+      utterance.rate = 1.05;
+      utterance.pitch = 0.95;
+      utterance.volume = 0.9;
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha')));
+      if (preferred) utterance.voice = preferred;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Mission State & Configuration
+    const state = {
+      activeSource: 'WEBCAM', // 'WEBCAM', 'OPENCV', 'CAM_01', 'CAM_02', 'CAM_03'
+      visionMode: 'cybernetic', // 'cybernetic', 'thermal', 'edges', 'motion_trails', 'lidar'
+      isStreaming: false,
+      isPaused: false,
+      currentStep: 2,
+      sequenceStatus: 'VALIDATING',
+      deviationType: 'nominal',
+      confidence: 0.968,
+      detectedAction: 'EXTRACTING CRYO VIAL',
+      fps: 60.0,
+      latency: 7.4,
+      motionEnergy: 0.24,
+      kinematics: {
+        elbowAngle: 84.2,
+        spinePitch: 11.4,
+        handDist: 0.032,
+        posture: 'NEUTRAL BODY POSTURE (NBP)',
+        grip: 'PINCH_LOCK'
+      },
+      layers: {
+        pose: true,
+        boxes: true,
+        arTools: true,
+        gripVectors: true,
+        biometrics: true
+      },
+      // Interactive AR Scientific Instruments in camera coordinate space (normalized 0-1)
+      arTools: [
+        {
+          id: 'vial',
+          title: 'CRYO VIAL #04',
+          desc: 'Specimen Container',
+          nx: 0.20,
+          ny: 0.30,
+          radius: 48,
+          activeStep: 2,
+          locked: false,
+          color: '#8cecff',
+          targetAction: 'Extract Cryogenic Specimen Container'
+        },
+        {
+          id: 'centrifuge',
+          title: 'CENTRIFUGE ROTOR',
+          desc: 'Slot Lock [1200 RPM]',
+          nx: 0.80,
+          ny: 0.32,
+          radius: 54,
+          activeStep: 3,
+          locked: false,
+          color: '#ffbe6b',
+          targetAction: 'Insert Specimen Into Centrifuge Slot'
+        },
+        {
+          id: 'airlock',
+          title: 'PURGE VALVE',
+          desc: 'Airlock Clean Purge',
+          nx: 0.82,
+          ny: 0.74,
+          radius: 44,
+          activeStep: 4,
+          locked: false,
+          color: '#8cecc1',
+          targetAction: 'Engage Centrifuge 1200 RPM Spin Cycle'
+        }
+      ]
+    };
+
+    // DOM References
+    const video = document.getElementById('webcamVideo');
+    const opencvImg = document.getElementById('opencvVideoImg');
+    const canvas = document.getElementById('viewportCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const diffCanvas = document.getElementById('diffCanvas');
+    const dCtx = diffCanvas.getContext('2d', { willReadFrequently: true });
+    const camPrompt = document.getElementById('camPrompt');
+
+    let stream = null;
+    let animId = null;
+    let prevFrameData = null;
+    let trailBufferCanvas = null;
+    let trailCtx = null;
+    let lidarY = 0;
+    let lidarDir = 1;
+    let autoCycleTimer = null;
+    let gestureCooldown = 0;
+    let hoverTimes = {};
+
+    // MediaPipe Pose & Hands instances
+    let mpPose = null;
+    let mpHands = null;
+    let latestPoseLandmarks = null;
+    let latestHandLandmarks = null;
+
+    // Thermal Colormap Palette Table
+    const thermalPalette = new Uint8ClampedArray(256 * 3);
+    for (let i = 0; i < 256; i++) {
+      const t = i / 255;
+      let r = 0, g = 0, b = 0;
+      if (t < 0.2) {
+        r = 0; g = Math.floor(t * 5 * 100); b = Math.floor(t * 5 * 255);
+      } else if (t < 0.45) {
+        const u = (t - 0.2) / 0.25;
+        r = Math.floor(u * 200); g = 0; b = 255;
+      } else if (t < 0.7) {
+        const u = (t - 0.45) / 0.25;
+        r = 255; g = Math.floor(u * 150); b = Math.floor((1 - u) * 200);
+      } else if (t < 0.9) {
+        const u = (t - 0.7) / 0.2;
+        r = 255; g = Math.floor(150 + u * 105); b = 0;
+      } else {
+        const u = (t - 0.9) / 0.1;
+        r = 255; g = 255; b = Math.floor(u * 255);
+      }
+      thermalPalette[i * 3] = r;
+      thermalPalette[i * 3 + 1] = g;
+      thermalPalette[i * 3 + 2] = b;
+    }
+
+    // Initialize Canvas Dimensions to match display container
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+
+      if (!trailBufferCanvas) {
+        trailBufferCanvas = document.createElement('canvas');
+        trailCtx = trailBufferCanvas.getContext('2d');
+      }
+      trailBufferCanvas.width = canvas.width;
+      trailBufferCanvas.height = canvas.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Initialize MediaPipe AI Models
+    async function initMediaPipeModels() {
+      try {
+        if (typeof window.Pose !== 'undefined') {
+          mpPose = new window.Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+          });
+          mpPose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+          });
+          mpPose.onResults((res) => {
+            if (res && res.poseLandmarks) {
+              latestPoseLandmarks = res.poseLandmarks;
+              calculateLiveBiometrics(res.poseLandmarks);
+            }
+          });
+        }
+        if (typeof window.Hands !== 'undefined') {
+          mpHands = new window.Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          });
+          mpHands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+          });
+          mpHands.onResults((res) => {
+            if (res && res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+              latestHandLandmarks = res.multiHandLandmarks;
+            } else {
+              latestHandLandmarks = null;
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("[MediaPipe] CDN not loaded, activating optical computer vision engine fallback:", err);
+      }
+    }
+    initMediaPipeModels();
+
+    // Biometric Calculation from Pose Landmarks
+    function calculateLiveBiometrics(landmarks) {
+      if (!landmarks || landmarks.length < 25) return;
+      const shoulder = landmarks[12];
+      const elbow = landmarks[14];
+      const wrist = landmarks[16];
+      if (shoulder && elbow && wrist) {
+        const v1 = { x: shoulder.x - elbow.x, y: shoulder.y - elbow.y };
+        const v2 = { x: wrist.x - elbow.x, y: wrist.y - elbow.y };
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        const mag1 = Math.hypot(v1.x, v1.y);
+        const mag2 = Math.hypot(v2.x, v2.y);
+        if (mag1 > 0 && mag2 > 0) {
+          const rad = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))));
+          state.kinematics.elbowAngle = Math.round(rad * (180 / Math.PI) * 10) / 10;
+        }
+      }
+      const nose = landmarks[0];
+      const hip = landmarks[24];
+      if (nose && hip) {
+        const dx = Math.abs(nose.x - hip.x);
+        const dy = Math.abs(nose.y - hip.y);
+        state.kinematics.spinePitch = Math.round(Math.atan2(dx, dy) * (180 / Math.PI) * 10) / 10;
+      }
+      updateTelemetryDisplays();
+    }
+
+    // Connect Laptop Camera
+    async function startLaptopCamera() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Browser does not support navigator.mediaDevices.getUserMedia");
+        }
+
+        const constraints = {
+          video: {
+            width: { ideal: 1280, min: 640 },
+            height: { ideal: 720, min: 480 },
+            facingMode: 'user',
+            frameRate: { ideal: 60, min: 30 }
+          },
+          audio: false
+        };
+
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+
+        await new Promise((resolve) => {
+          video.onloadedmetadata = () => {
+            video.play();
+            resolve();
+          };
+        });
+
+        state.isStreaming = true;
+        camPrompt.classList.add('hidden');
+        opencvImg.style.display = 'none';
+
+        audioEngine.playTone(880, 0.08, 'sine');
+        setTimeout(() => audioEngine.playTone(1320, 0.12, 'sine'), 80);
+        speakAIVoice("Laptop camera linked. On-board computer vision active.");
+
+        addLogEntry("CAMERA", "Laptop camera optical sensor connected successfully.", "NOMINAL");
+
+        if (!animId) startRenderLoop();
+        startMediaPipeFeed();
+        return true;
+      } catch (err) {
+        console.error("Camera access error:", err);
+        alert("Camera Access Error: " + (err.message || "Permission Denied") + "\n\nTip: Please enable webcam permissions in your browser address bar.");
+        return false;
+      }
+    }
+
+    function stopLaptopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      state.isStreaming = false;
+      camPrompt.classList.remove('hidden');
+      latestPoseLandmarks = null;
+      latestHandLandmarks = null;
+      addLogEntry("CAMERA", "Laptop camera sensor disconnected.", "NOMINAL");
+    }
+
+    // MediaPipe Frame Dispatcher Loop (15 Hz)
+    let mpActive = false;
+    function startMediaPipeFeed() {
+      if (mpActive) return;
+      mpActive = true;
+      setInterval(async () => {
+        if (!state.isStreaming || state.isPaused || video.readyState < 2) return;
+        try {
+          if (mpPose && state.layers.pose) {
+            await mpPose.send({ image: video });
+          }
+          if (mpHands && state.layers.gripVectors) {
+            await mpHands.send({ image: video });
+          }
+        } catch (e) {}
+      }, 66);
+    }
+
+    // Frame Differencing for Optical Motion Flux & Kinetic Trails
+    function computeMotionFlux() {
+      if (!state.isStreaming || video.readyState < 2) return 0.2;
+      dCtx.drawImage(video, 0, 0, 160, 120);
+      const curData = dCtx.getImageData(0, 0, 160, 120);
+      if (!prevFrameData) {
+        prevFrameData = curData;
+        return 0.2;
+      }
+      let diff = 0;
+      const len = curData.data.length;
+      for (let i = 0; i < len; i += 4) {
+        const d = Math.abs(curData.data[i] - prevFrameData.data[i]) +
+                  Math.abs(curData.data[i + 1] - prevFrameData.data[i + 1]) +
+                  Math.abs(curData.data[i + 2] - prevFrameData.data[i + 2]);
+        if (d > 65) diff++;
+      }
+      prevFrameData = curData;
+      const fluxRatio = diff / (160 * 120);
+      state.motionEnergy = Math.min(2.5, 0.2 + fluxRatio * 4.0);
+      return fluxRatio;
+    }
+
+    // Main 60 FPS Canvas Render Loop
+    let lastTime = performance.now();
+    let frameCounter = 0;
+    let fpsUpdateTime = performance.now();
+    let feedTime = 0;
+
+    function startRenderLoop() {
+      function render(time) {
+        animId = requestAnimationFrame(render);
+        feedTime += 0.025;
+        if (gestureCooldown > 0) gestureCooldown--;
+
+        frameCounter++;
+        if (time - fpsUpdateTime >= 600) {
+          state.fps = Math.round((frameCounter / ((time - fpsUpdateTime) / 1000)) * 10) / 10;
+          state.latency = Math.round((1000 / Math.max(state.fps, 10)) * 10) / 10;
+          frameCounter = 0;
+          fpsUpdateTime = time;
+          const fpsBadge = document.getElementById('fpsBadge');
+          if (fpsBadge) fpsBadge.textContent = `${state.fps.toFixed(1)} FPS // ${state.latency.toFixed(1)} ms`;
+        }
+
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w === 0 || h === 0) return;
+
+        ctx.clearRect(0, 0, w, h);
+
+        if (state.activeSource === 'OPENCV') {
+          drawTacticalHUD(w, h);
+          drawInteractiveARApparatus(w, h, w * 0.5, h * 0.5);
+          return;
+        }
+
+        if (state.activeSource === 'WEBCAM' && state.isStreaming && video.readyState >= 2) {
+          renderActiveVisionMode(w, h);
+          evaluateInteractionsAndGestures(w, h);
+        } else {
+          renderSyntheticSpaceCamera(w, h);
+        }
+
+        drawTacticalHUD(w, h);
+      }
+      animId = requestAnimationFrame(render);
+    }
+
+    // =========================================================================
+    // CREATIVE COMPUTER VISION SHADER FILTERS (CANVAS ENGINE)
+    // =========================================================================
+    function renderActiveVisionMode(w, h) {
+      const mode = state.visionMode;
+
+      if (mode === 'thermal') {
+        dCtx.save();
+        dCtx.translate(160, 0);
+        dCtx.scale(-1, 1);
+        dCtx.drawImage(video, 0, 0, 160, 120);
+        dCtx.restore();
+
+        const imgData = dCtx.getImageData(0, 0, 160, 120);
+        const data = imgData.data;
+        const out = ctx.createImageData(160, 120);
+        const outData = out.data;
+
+        let maxLuma = 0;
+        let maxPos = { x: 80, y: 60 };
+
+        for (let i = 0; i < data.length; i += 4) {
+          const luma = Math.floor(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+          const pIdx = luma * 3;
+          outData[i] = thermalPalette[pIdx];
+          outData[i + 1] = thermalPalette[pIdx + 1];
+          outData[i + 2] = thermalPalette[pIdx + 2];
+          outData[i + 3] = 255;
+
+          if (luma > maxLuma) {
+            maxLuma = luma;
+            const px = (i / 4) % 160;
+            const py = Math.floor((i / 4) / 160);
+            maxPos = { x: px, y: py };
+          }
+        }
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 160;
+        tempCanvas.height = 120;
+        tempCanvas.getContext('2d').putImageData(out, 0, 0);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(tempCanvas, 0, 0, w, h);
+
+        const hotX = (maxPos.x / 160) * w;
+        const hotY = (maxPos.y / 120) * h;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(hotX, hotY, 18, 0, Math.PI * 2);
+        ctx.moveTo(hotX - 24, hotY); ctx.lineTo(hotX + 24, hotY);
+        ctx.moveTo(hotX, hotY - 24); ctx.lineTo(hotX, hotY + 24);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px "JetBrains Mono"';
+        ctx.fillText("HOTSPOT: 36.8°C [CORE]", hotX + 22, hotY - 8);
+
+        const barX = w - 24;
+        const barY = h * 0.25;
+        const barH = h * 0.5;
+        const grad = ctx.createLinearGradient(0, barY, 0, barY + barH);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.2, '#ffdd00');
+        grad.addColorStop(0.4, '#ff4400');
+        grad.addColorStop(0.7, '#880088');
+        grad.addColorStop(1, '#000033');
+        ctx.fillStyle = grad;
+        ctx.fillRect(barX, barY, 10, barH);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.strokeRect(barX, barY, 10, barH);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '9px "JetBrains Mono"';
+        ctx.fillText("38°C", barX - 32, barY + 8);
+        ctx.fillText("18°C", barX - 32, barY + barH);
+
+      } else if (mode === 'edges') {
+        dCtx.save();
+        dCtx.translate(160, 0);
+        dCtx.scale(-1, 1);
+        dCtx.drawImage(video, 0, 0, 160, 120);
+        dCtx.restore();
+
+        const imgData = dCtx.getImageData(0, 0, 160, 120);
+        const d = imgData.data;
+        const out = ctx.createImageData(160, 120);
+        const o = out.data;
+
+        for (let y = 1; y < 119; y++) {
+          for (let x = 1; x < 159; x++) {
+            const idx = (y * 160 + x) * 4;
+            const left = (y * 160 + (x - 1)) * 4;
+            const right = (y * 160 + (x + 1)) * 4;
+            const top = ((y - 1) * 160 + x) * 4;
+            const btm = ((y + 1) * 160 + x) * 4;
+
+            const gx = Math.abs(d[right] - d[left]);
+            const gy = Math.abs(d[btm] - d[top]);
+            const mag = Math.min(255, (gx + gy) * 1.6);
+
+            if (mag > 40) {
+              o[idx] = 140;
+              o[idx + 1] = 236;
+              o[idx + 2] = 255;
+              o[idx + 3] = mag;
+            } else {
+              o[idx] = 2;
+              o[idx + 1] = 7;
+              o[idx + 2] = 13;
+              o[idx + 3] = 255;
+            }
+          }
+        }
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 160;
+        tempCanvas.height = 120;
+        tempCanvas.getContext('2d').putImageData(out, 0, 0);
+
+        ctx.drawImage(tempCanvas, 0, 0, w, h);
+
+        ctx.strokeStyle = 'rgba(140, 236, 193, 0.08)';
+        ctx.lineWidth = 1;
+        for (let gx = 0; gx < w; gx += 32) {
+          ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+        }
+        for (let gy = 0; gy < h; gy += 32) {
+          ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
+        }
+
+      } else if (mode === 'motion_trails') {
+        ctx.save();
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, w, h);
+        ctx.restore();
+
+        computeMotionFlux();
+        if (trailCtx) {
+          trailCtx.fillStyle = 'rgba(2, 7, 13, 0.12)';
+          trailCtx.fillRect(0, 0, trailBufferCanvas.width, trailBufferCanvas.height);
+
+          if (latestPoseLandmarks) {
+            const rw = latestPoseLandmarks[16];
+            if (rw) {
+              const rx = (1 - rw.x) * w;
+              const ry = rw.y * h;
+              const grad = trailCtx.createRadialGradient(rx, ry, 2, rx, ry, 34);
+              grad.addColorStop(0, 'rgba(140, 236, 255, 0.8)');
+              grad.addColorStop(0.5, 'rgba(140, 236, 193, 0.4)');
+              grad.addColorStop(1, 'transparent');
+              trailCtx.fillStyle = grad;
+              trailCtx.beginPath();
+              trailCtx.arc(rx, ry, 34, 0, Math.PI * 2);
+              trailCtx.fill();
+            }
+          }
+          ctx.drawImage(trailBufferCanvas, 0, 0, w, h);
+        }
+
+      } else if (mode === 'lidar') {
+        ctx.save();
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, w, h);
+        ctx.restore();
+
+        ctx.fillStyle = 'rgba(2, 9, 16, 0.4)';
+        ctx.fillRect(0, 0, w, h);
+
+        lidarY += 5 * lidarDir;
+        if (lidarY >= h - 40) lidarDir = -1;
+        if (lidarY <= 40) lidarDir = 1;
+
+        const lGrad = ctx.createLinearGradient(0, lidarY - 20, 0, lidarY + 20);
+        lGrad.addColorStop(0, 'transparent');
+        lGrad.addColorStop(0.5, 'rgba(140, 236, 193, 0.45)');
+        lGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = lGrad;
+        ctx.fillRect(0, lidarY - 20, w, 40);
+
+        ctx.strokeStyle = '#8cecc1';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#8cecc1';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(0, lidarY);
+        ctx.lineTo(w, lidarY);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = 'rgba(140, 236, 255, 0.3)';
+        ctx.lineWidth = 1;
+        for (let dy = -25; dy <= 25; dy += 8) {
+          const cy = lidarY + dy;
+          if (cy > 0 && cy < h) {
+            ctx.beginPath();
+            ctx.moveTo(10, cy);
+            ctx.lineTo(w - 10, cy);
+            ctx.stroke();
+          }
+        }
+
+        ctx.fillStyle = '#8cecc1';
+        ctx.font = '10px "JetBrains Mono"';
+        ctx.fillText(`LiDAR TIME-OF-FLIGHT // Z-PLANE: ${Math.round(lidarY)} mm`, 20, Math.max(25, lidarY - 12));
+
+      } else {
+        ctx.save();
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, w, h);
+        ctx.restore();
+
+        ctx.fillStyle = 'rgba(2, 12, 22, 0.22)';
+        ctx.fillRect(0, 0, w, h);
+        computeMotionFlux();
+      }
+
+      if (state.layers.pose) {
+        drawBiomechanicalSkeleton(w, h);
+      }
+      if (state.layers.boxes) {
+        drawAstronautTargetLock(w, h);
+      }
+    }
+
+    // =========================================================================
+    // BIOMECHANICAL SKELETON & JOINT KINEMATICS OVERLAY
+    // =========================================================================
+    function drawBiomechanicalSkeleton(w, h) {
+      let joints = [];
+      let headX = w * 0.5;
+      let headY = h * 0.35;
+
+      if (latestPoseLandmarks && latestPoseLandmarks.length >= 25) {
+        joints = latestPoseLandmarks.map((lm) => ({
+          x: (1 - lm.x) * w,
+          y: lm.y * h,
+          visibility: lm.visibility || 0.9
+        }));
+        headX = joints[0].x;
+        headY = joints[0].y;
+      } else {
+        const ax = w * 0.5 + Math.sin(feedTime * 1.5) * 8;
+        const ay = h * 0.48 + Math.cos(feedTime * 1.2) * 5;
+        headX = ax;
+        headY = ay - 68;
+        const spineY = ay - 10;
+        const hipY = ay + 44;
+        const rArmWave = Math.sin(feedTime * 2.2) * 16;
+
+        joints = [
+          { x: ax, y: headY },
+          { x: ax - 30, y: spineY - 12 },
+          { x: ax + 30, y: spineY - 12 },
+          { x: ax - 50, y: ay + 12 },
+          { x: ax + 54 + rArmWave, y: ay + 8 },
+          { x: ax - 65, y: ay + 38 },
+          { x: ax + 78 + rArmWave, y: ay + 32 },
+          { x: ax, y: spineY },
+          { x: ax, y: hipY },
+          { x: ax - 24, y: hipY },
+          { x: ax + 24, y: hipY },
+          { x: ax - 35, y: ay + 92 },
+          { x: ax + 35, y: ay + 88 }
+        ];
+      }
+
+      ctx.save();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = '#8cecff';
+      ctx.shadowColor = '#8cecff';
+      ctx.shadowBlur = 8;
+
+      function connect(i1, i2) {
+        if (!joints[i1] || !joints[i2]) return;
+        ctx.beginPath();
+        ctx.moveTo(joints[i1].x, joints[i1].y);
+        ctx.lineTo(joints[i2].x, joints[i2].y);
+        ctx.stroke();
+      }
+
+      if (latestPoseLandmarks) {
+        connect(11, 12);
+        connect(11, 13); connect(13, 15);
+        connect(12, 14); connect(14, 16);
+        connect(11, 23); connect(12, 24);
+        connect(23, 24);
+        connect(23, 25); connect(25, 27);
+        connect(24, 26); connect(26, 28);
+      } else {
+        connect(1, 2); connect(1, 3); connect(3, 5);
+        connect(2, 4); connect(4, 6);
+        connect(1, 7); connect(7, 8);
+        connect(8, 9); connect(8, 10);
+        connect(9, 11); connect(10, 12);
+      }
+
+      ctx.fillStyle = '#a5ffca';
+      ctx.shadowColor = '#a5ffca';
+      ctx.shadowBlur = 10;
+      joints.forEach((j) => {
+        if (j.x > 0 && j.x < w && j.y > 0 && j.y < h) {
+          ctx.beginPath();
+          ctx.arc(j.x, j.y, 3.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      if (state.layers.biometrics && joints[4]) {
+        const ej = joints[4];
+        ctx.strokeStyle = '#ffbe6b';
+        ctx.beginPath();
+        ctx.arc(ej.x, ej.y, 16, 0, Math.PI * 0.8);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffbe6b';
+        ctx.font = '9px "JetBrains Mono"';
+        ctx.fillText(`${state.kinematics.elbowAngle}°`, ej.x + 18, ej.y + 4);
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // ASTRONAUT TARGET LOCK & HUD RETICLES
+    // =========================================================================
+    function drawAstronautTargetLock(w, h) {
+      let cx = w * 0.5;
+      let cy = h * 0.38;
+      if (latestPoseLandmarks && latestPoseLandmarks[0]) {
+        cx = (1 - latestPoseLandmarks[0].x) * w;
+        cy = latestPoseLandmarks[0].y * h;
+      }
+
+      const bx = cx - 70;
+      const by = cy - 75;
+      const bw = 140;
+      const bh = 150;
+
+      ctx.strokeStyle = 'rgba(140, 236, 255, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx, by, bw, bh);
+
+      const cL = 12;
+      ctx.lineWidth = 2.8;
+      ctx.strokeStyle = '#8cecff';
+      ctx.beginPath();
+      ctx.moveTo(bx, by + cL); ctx.lineTo(bx, by); ctx.lineTo(bx + cL, by);
+      ctx.moveTo(bx + bw - cL, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + cL);
+      ctx.moveTo(bx, by + bh - cL); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + cL, by + bh);
+      ctx.moveTo(bx + bw - cL, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - cL);
+      ctx.stroke();
+
+      ctx.fillStyle = '#8cecff';
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.fillText(`ASTRONAUT [${(state.confidence * 100).toFixed(0)}%]`, bx, by - 6);
+    }
+
+    // =========================================================================
+    // INTERACTIVE AR SCIENTIFIC APPARATUS & GESTURE COLLISION
+    // =========================================================================
+    function drawInteractiveARApparatus(w, h, handX, handY) {
+      if (!state.layers.arTools) return;
+
+      state.arTools.forEach((tool) => {
+        const tx = tool.nx * w;
+        const ty = tool.ny * h;
+        const rad = tool.radius;
+
+        const dist = Math.hypot(handX - tx, handY - ty);
+        const isHovered = dist < rad + 24;
+
+        if (isHovered) {
+          hoverTimes[tool.id] = (hoverTimes[tool.id] || 0) + 1;
+        } else {
+          hoverTimes[tool.id] = Math.max(0, (hoverTimes[tool.id] || 0) - 2);
+        }
+
+        const isLocked = hoverTimes[tool.id] > 25;
+
+        if (isHovered && state.layers.gripVectors) {
+          ctx.save();
+          ctx.strokeStyle = isLocked ? '#8cecc1' : '#8cecff';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(handX, handY);
+          ctx.lineTo(tx, ty);
+          ctx.stroke();
+          ctx.restore();
+
+          const cmDist = Math.max(0.5, (dist / w) * 50).toFixed(1);
+          state.kinematics.handDist = (cmDist / 100).toFixed(3);
+          ctx.fillStyle = isLocked ? '#8cecc1' : '#8cecff';
+          ctx.font = '9px "JetBrains Mono"';
+          ctx.fillText(`PROXIMITY: ${cmDist} cm ${isLocked ? '[CONTACT]' : ''}`, (handX + tx) * 0.5, (handY + ty) * 0.5 - 8);
+        }
+
+        if (isLocked && !tool.locked && gestureCooldown === 0) {
+          tool.locked = true;
+          gestureCooldown = 75;
+          audioEngine.playLockChime();
+          advanceToStep(tool.activeStep);
+          speakAIVoice(`Validated: ${tool.title} manipulated.`);
+          addLogEntry(`AR_LOCK`, `${tool.title} contact verified via optical hand kinematics.`, "VALIDATED");
+        }
+
+        ctx.save();
+        ctx.lineWidth = isLocked ? 3 : 1.8;
+        ctx.strokeStyle = isLocked ? '#8cecc1' : (isHovered ? '#8cecff' : tool.color);
+        ctx.fillStyle = isLocked ? 'rgba(140, 236, 193, 0.18)' : 'rgba(140, 236, 255, 0.06)';
+
+        ctx.beginPath();
+        ctx.arc(tx, ty, rad, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        const rot = feedTime * (isHovered ? 3 : 0.8);
+        for (let a = 0; a < 4; a++) {
+          const angle = rot + (a * Math.PI / 2);
+          const px = tx + Math.cos(angle) * (rad + 6);
+          const py = ty + Math.sin(angle) * (rad + 6);
+          ctx.fillStyle = isLocked ? '#8cecc1' : tool.color;
+          ctx.beginPath();
+          ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px "Space Grotesk"';
+        ctx.textAlign = 'center';
+        const icon = tool.id === 'vial' ? '🧪' : (tool.id === 'centrifuge' ? '🔄' : '🛡️');
+        ctx.fillText(icon, tx, ty - 2);
+
+        ctx.fillStyle = isLocked ? '#8cecc1' : '#fff';
+        ctx.font = '10px "JetBrains Mono"';
+        ctx.fillText(tool.title, tx, ty + 16);
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '8px "JetBrains Mono"';
+        ctx.fillText(tool.desc, tx, ty + 26);
+        ctx.textAlign = 'left';
+
+        ctx.restore();
+      });
+    }
+
+    // Evaluate Hand Interactions & Hands-Free Gestures
+    function evaluateInteractionsAndGestures(w, h) {
+      let handX = w * 0.7;
+      let handY = h * 0.5;
+
+      if (latestHandLandmarks && latestHandLandmarks.length > 0) {
+        const hand = latestHandLandmarks[0];
+        const tip = hand[8] || hand[0];
+        handX = (1 - tip.x) * w;
+        handY = tip.y * h;
+
+        const thumbTip = hand[4];
+        const indexTip = hand[8];
+        if (thumbTip && indexTip) {
+          const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+          if (pinchDist < 0.065) {
+            state.kinematics.grip = 'PINCH_LOCK';
+          } else {
+            state.kinematics.grip = 'OPEN_PALM';
+          }
+        }
+      } else if (latestPoseLandmarks && latestPoseLandmarks[16]) {
+        handX = (1 - latestPoseLandmarks[16].x) * w;
+        handY = latestPoseLandmarks[16].y * h;
+      } else {
+        handX = w * 0.72 + Math.sin(feedTime * 2.2) * 16;
+        handY = h * 0.48 + Math.cos(feedTime * 1.8) * 12;
+      }
+
+      ctx.strokeStyle = '#a5ffca';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(handX, handY, 12, 0, Math.PI * 2);
+      ctx.stroke();
+
+      drawInteractiveARApparatus(w, h, handX, handY);
+
+      if (state.motionEnergy > 1.4 && gestureCooldown === 0 && !autoCycleTimer) {
+        gestureCooldown = 90;
+        audioEngine.playSonarPing();
+        const next = (state.currentStep % 5) + 1;
+        advanceToStep(next);
+        speakAIVoice(`Wave detected. Proceeding to Step 0${next}.`);
+      }
+    }
+
+    // =========================================================================
+    // TACTICAL AEROSPACE HUD OVERLAYS & SCANLINES
+    // =========================================================================
+    function drawTacticalHUD(w, h) {
+      ctx.fillStyle = 'rgba(140, 236, 255, 0.015)';
+      for (let i = 0; i < h; i += 4) {
+        ctx.fillRect(0, i, w, 1);
+      }
+
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+      ctx.strokeStyle = 'rgba(140, 236, 255, 0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 20, cy); ctx.lineTo(cx + 20, cy);
+      ctx.moveTo(cx, cy - 20); ctx.lineTo(cx, cy + 20);
+      ctx.arc(cx, cy, 26, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(140, 236, 193, 0.3)';
+      ctx.beginPath();
+      ctx.moveTo(cx - 60, cy); ctx.lineTo(cx - 32, cy);
+      ctx.moveTo(cx + 32, cy); ctx.lineTo(cx + 60, cy);
+      ctx.stroke();
+    }
+
+    // Synthetic Space Camera Views
+    function renderSyntheticSpaceCamera(w, h) {
+      ctx.fillStyle = '#020b16';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(140, 236, 255, 0.08)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= w; x += 50) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x * 0.8 + w * 0.1, h); ctx.stroke();
+      }
+
+      ctx.fillStyle = '#081a2e';
+      ctx.fillRect(w * 0.62, h * 0.25, w * 0.3, h * 0.55);
+      ctx.strokeStyle = 'rgba(140, 236, 255, 0.3)';
+      ctx.strokeRect(w * 0.62, h * 0.25, w * 0.3, h * 0.55);
+
+      const cx = w * 0.77;
+      const cy = h * 0.52;
+      const rot = feedTime * 4;
+      ctx.strokeStyle = 'rgba(140, 236, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 38, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let i = 0; i < 4; i++) {
+        const a = rot + (i * Math.PI / 2);
+        ctx.fillStyle = '#8cecff';
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * 28, cy + Math.sin(a) * 28, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      drawBiomechanicalSkeleton(w, h);
+      drawAstronautTargetLock(w, h);
+      drawInteractiveARApparatus(w, h, w * 0.45, h * 0.5);
+    }
+
+    // =========================================================================
+    // PROTOCOL STATE MACHINE & CONTROLLER
+    // =========================================================================
+    const PROTOCOL_STEPS = [
+      { index: 1, title: 'Sterilize Payload Biosafety Rack', desc: 'Prepare sterile workstation', action: 'STERILIZING BIO-SAFETY WORKSTATION' },
+      { index: 2, title: 'Extract Cryogenic Specimen Container', desc: 'Retrieve cryo-vial #04', action: 'EXTRACTING CRYO VIAL' },
+      { index: 3, title: 'Insert Specimen Into Centrifuge Slot', desc: 'Secure vial in rotor arm 2', action: 'CENTRIFUGE RACK SPECIMEN LOAD' },
+      { index: 4, title: 'Engage Centrifuge 1200 RPM Spin Cycle', desc: 'Activate spin sequence', action: 'ENGAGING ROTOR 1200 RPM' },
+      { index: 5, title: 'Record Optical Density Telemetry', desc: 'Complete optical verification', action: 'RECORDING AUDIT TELEMETRY' }
+    ];
+
+    function advanceToStep(stepNum, deviation = 'nominal') {
+      state.currentStep = stepNum;
+      state.deviationType = deviation;
+
+      const stepData = PROTOCOL_STEPS.find(s => s.index === stepNum) || PROTOCOL_STEPS[1];
+      state.detectedAction = stepData.action;
+
+      try {
+        fetch('/api/sequence/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            detected_step_index: stepNum,
+            detected_action: stepData.title,
+            confidence: 0.968
+          })
+        }).catch(() => {});
+      } catch (e) {}
+
+      updateTelemetryDisplays();
+
+      const logStatus = deviation === 'nominal' ? 'VALIDATED' : (deviation === 'skipped' ? 'SKIPPED' : 'ALERT');
+      addLogEntry(`STEP 0${stepNum}`, stepData.title, logStatus);
+    }
+
+    function updateTelemetryDisplays() {
+      const stepData = PROTOCOL_STEPS.find(s => s.index === state.currentStep) || PROTOCOL_STEPS[1];
+
+      const rAct = document.getElementById('ribbonDetectedAction');
+      if (rAct) rAct.textContent = state.detectedAction;
+
+      const rSeq = document.getElementById('ribbonSeqStatus');
+      if (rSeq) {
+        if (state.deviationType === 'nominal') {
+          rSeq.textContent = `STEP 0${state.currentStep} VALIDATED`;
+          rSeq.className = 'ribbon-val green';
+        } else if (state.deviationType === 'skipped') {
+          rSeq.textContent = `WARNING: STEP 03 SKIPPED`;
+          rSeq.className = 'ribbon-val amber';
+        } else {
+          rSeq.textContent = `ALERT: OUT-OF-SEQUENCE`;
+          rSeq.className = 'ribbon-val red';
+        }
+      }
+
+      const kElbow = document.getElementById('kinElbowVal');
+      if (kElbow) kElbow.textContent = `${state.kinematics.elbowAngle.toFixed(1)}°`;
+      const mElbow = document.getElementById('meterElbow');
+      if (mElbow) mElbow.style.width = `${Math.min(100, (state.kinematics.elbowAngle / 150) * 100)}%`;
+
+      const kSpine = document.getElementById('kinSpineVal');
+      if (kSpine) kSpine.textContent = `${state.kinematics.spinePitch.toFixed(1)}°`;
+      const mSpine = document.getElementById('meterSpine');
+      if (mSpine) mSpine.style.width = `${Math.min(100, (state.kinematics.spinePitch / 45) * 100)}%`;
+
+      const kDist = document.getElementById('kinDistVal');
+      if (kDist) kDist.textContent = `${(parseFloat(state.kinematics.handDist) * 100).toFixed(1)} cm`;
+
+      const kFlux = document.getElementById('kinFluxVal');
+      if (kFlux) kFlux.textContent = `${state.motionEnergy.toFixed(2)} kW/m²`;
+      const mFlux = document.getElementById('meterFlux');
+      if (mFlux) mFlux.style.width = `${Math.min(100, (state.motionEnergy / 2.5) * 100)}%`;
+
+      const kGrip = document.getElementById('kinGripState');
+      if (kGrip) kGrip.textContent = state.kinematics.grip;
+
+      const vpAct = document.getElementById('vpActionText');
+      if (vpAct) vpAct.textContent = state.detectedAction;
+      const vpMotion = document.getElementById('vpMotionText');
+      if (vpMotion) vpMotion.textContent = `${state.motionEnergy.toFixed(2)} kW/m²`;
+
+      const stepItems = document.querySelectorAll('.protocol-step-item');
+      stepItems.forEach((item) => {
+        const sIdx = parseInt(item.getAttribute('data-step'), 10);
+        item.classList.remove('active', 'completed', 'deviation');
+        const badge = item.querySelector('.psi-badge');
+
+        if (sIdx < state.currentStep) {
+          item.classList.add('completed');
+          if (badge) { badge.className = 'psi-badge validated'; badge.textContent = 'VALIDATED'; }
+        } else if (sIdx === state.currentStep) {
+          if (state.deviationType === 'nominal') {
+            item.classList.add('active');
+            if (badge) { badge.className = 'psi-badge current'; badge.textContent = 'IN PROGRESS'; }
+          } else {
+            item.classList.add('deviation');
+            if (badge) { badge.className = 'psi-badge skipped'; badge.textContent = state.deviationType.toUpperCase(); }
+          }
+        } else {
+          if (badge) { badge.className = 'psi-badge pending'; badge.textContent = 'PENDING'; }
+        }
+      });
+    }
+
+    function addLogEntry(step, desc, status) {
+      const logTerminal = document.getElementById('logTerminal');
+      if (!logTerminal) return;
+
+      const now = new Date();
+      const timeStr = `[${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}:${String(now.getUTCSeconds()).padStart(2,'0')}]`;
+
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `
+        <span class="log-time">${timeStr}</span>
+        <span class="log-step">${step}</span>
+        <span class="log-desc">${desc}</span>
+        <span class="log-stat ${status}">${status}</span>
+      `;
+      logTerminal.appendChild(line);
+      logTerminal.scrollTop = logTerminal.scrollHeight;
+    }
+
+    // Event Listeners
+    document.getElementById('btnConnectCameraHero').addEventListener('click', () => {
+      startLaptopCamera();
+    });
+
+    document.getElementById('btnDisconnectCam').addEventListener('click', () => {
+      stopLaptopCamera();
+    });
+
+    document.getElementById('btnTogglePauseAI').addEventListener('click', () => {
+      state.isPaused = !state.isPaused;
+      const btn = document.getElementById('btnTogglePauseAI');
+      btn.innerHTML = state.isPaused ? '<span>▶</span> RESUME AI' : '<span>⏸</span> PAUSE AI';
+    });
+
+    document.querySelectorAll('.cam-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        document.querySelectorAll('.cam-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const source = btn.getAttribute('data-source');
+        state.activeSource = source;
+
+        const ribCam = document.getElementById('ribbonCamName');
+        const ribSub = document.getElementById('ribbonCamSub');
+        const vpSensor = document.getElementById('vpSensorLabel');
+
+        if (source === 'WEBCAM') {
+          if (ribCam) ribCam.textContent = 'LAPTOP CAMERA';
+          if (ribSub) ribSub.textContent = 'Direct MediaPipe & Canvas AI';
+          if (vpSensor) vpSensor.textContent = 'LAPTOP OPTICAL SENSOR // HIGH-FPS EDGE HAR';
+          opencvImg.style.display = 'none';
+          if (!state.isStreaming) startLaptopCamera();
+        } else if (source === 'OPENCV') {
+          if (ribCam) ribCam.textContent = 'OPENCV PYTHON STREAM';
+          if (ribSub) ribSub.textContent = 'Local Python CV Service (MJPEG)';
+          if (vpSensor) vpSensor.textContent = 'PYTHON OPENCV CAMERA // MJPEG STREAM';
+          fetch('/api/camera/opencv/start', { method: 'POST' }).catch(() => {});
+          opencvImg.src = '/api/camera/video_feed';
+          opencvImg.style.display = 'block';
+          camPrompt.classList.add('hidden');
+          speakAIVoice("Switched to Python OpenCV camera stream.");
+        } else {
+          if (ribCam) ribCam.textContent = source;
+          if (ribSub) ribSub.textContent = 'Simulated Spacecraft Fixed-Payload Feed';
+          if (vpSensor) vpSensor.textContent = `PAYLOAD FEED // ${source}`;
+          opencvImg.style.display = 'none';
+          camPrompt.classList.add('hidden');
+        }
+        audioEngine.playTone(1100, 0.06);
+      });
+    });
+
+    document.querySelectorAll('.btn-vision-mode').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-vision-mode').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const mode = btn.getAttribute('data-mode');
+        state.visionMode = mode;
+
+        const ribMode = document.getElementById('ribbonVisionMode');
+        const ribSub = document.getElementById('ribbonVisionSub');
+        const vpBadge = document.getElementById('vpModeBadge');
+
+        const modeTitles = {
+          cybernetic: { title: 'CYBERNETIC HUD', sub: 'Biomechanical 34-Joint Overlay', badge: 'MODE: CYBERNETIC SKELETON' },
+          thermal: { title: 'THERMAL IR SPECTROMETRY', sub: 'False-Color Heatmap Matrix', badge: 'MODE: THERMAL IR HEATMAP' },
+          edges: { title: 'SOBEL EDGE MATRIX', sub: 'Quantum Gradient Tensor', badge: 'MODE: QUANTUM SOBEL EDGES' },
+          motion_trails: { title: 'KINETIC TRAILS', sub: 'Microgravity Momentum Ribbons', badge: 'MODE: KINETIC MOTION TRAILS' },
+          lidar: { title: '3D LIDAR SCANNER', sub: 'Time-of-Flight Elevation Grid', badge: 'MODE: 3D LIDAR CONTOURS' }
+        };
+
+        const mInfo = modeTitles[mode] || modeTitles.cybernetic;
+        if (ribMode) ribMode.textContent = mInfo.title;
+        if (ribSub) ribSub.textContent = mInfo.sub;
+        if (vpBadge) vpBadge.textContent = mInfo.badge;
+
+        audioEngine.playTone(1440, 0.06, 'triangle');
+        speakAIVoice(`Vision mode: ${mInfo.title}.`);
+
+        if (state.activeSource === 'OPENCV') {
+          fetch('/api/camera/opencv/mode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: mode })
+          }).catch(() => {});
+        }
+      });
+    });
+
+    document.getElementById('chkPose').addEventListener('change', (e) => state.layers.pose = e.target.checked);
+    document.getElementById('chkTargetBoxes').addEventListener('change', (e) => state.layers.boxes = e.target.checked);
+    document.getElementById('chkArTools').addEventListener('change', (e) => state.layers.arTools = e.target.checked);
+    document.getElementById('chkGripVectors').addEventListener('change', (e) => state.layers.gripVectors = e.target.checked);
+    document.getElementById('chkBiometrics').addEventListener('change', (e) => state.layers.biometrics = e.target.checked);
+
+    document.getElementById('btnNextStep').addEventListener('click', () => {
+      const next = (state.currentStep % 5) + 1;
+      advanceToStep(next, 'nominal');
+      audioEngine.playTone(1600, 0.08);
+    });
+
+    document.getElementById('btnSkipStep').addEventListener('click', () => {
+      advanceToStep(4, 'skipped');
+      audioEngine.playAlertTone();
+      speakAIVoice("Warning! Step 03 Centrifuge insertion skipped. Protocol deviation detected.");
+    });
+
+    document.getElementById('btnOrderDev').addEventListener('click', () => {
+      advanceToStep(1, 'out_of_order');
+      audioEngine.playAlertTone();
+      speakAIVoice("Caution. Out of order protocol activity detected.");
+    });
+
+    document.getElementById('btnResetProtocol').addEventListener('click', () => {
+      advanceToStep(1, 'nominal');
+      audioEngine.playTone(900, 0.1);
+      speakAIVoice("Protocol reset to initial sterile preparation.");
+    });
+
+    const btnAuto = document.getElementById('btnAutoRun');
+    btnAuto.addEventListener('click', () => {
+      if (autoCycleTimer) {
+        clearInterval(autoCycleTimer);
+        autoCycleTimer = null;
+        btnAuto.classList.remove('running');
+        btnAuto.innerHTML = '<span>⚡</span> AUTO-CYCLE';
+      } else {
+        btnAuto.classList.add('running');
+        btnAuto.innerHTML = '<span>⏹</span> STOP AUTO';
+        let stepIdx = state.currentStep;
+        autoCycleTimer = setInterval(() => {
+          stepIdx = (stepIdx % 5) + 1;
+          advanceToStep(stepIdx, 'nominal');
+        }, 3400);
+      }
+    });
+
+    document.getElementById('btnCaptureSnapshot').addEventListener('click', () => {
+      const flash = document.getElementById('snapFlash');
+      flash.classList.add('active');
+      setTimeout(() => flash.classList.remove('active'), 120);
+
+      audioEngine.playTone(1800, 0.05, 'triangle', 0.2);
+
+      const snapCanvas = document.createElement('canvas');
+      snapCanvas.width = canvas.width;
+      snapCanvas.height = canvas.height;
+      const sCtx = snapCanvas.getContext('2d');
+      sCtx.drawImage(canvas, 0, 0);
+
+      sCtx.fillStyle = 'rgba(2, 8, 14, 0.85)';
+      sCtx.fillRect(16, snapCanvas.height - 40, 480, 28);
+      sCtx.fillStyle = '#8cecff';
+      sCtx.font = '12px "JetBrains Mono"';
+      sCtx.fillText(`BAS-HAR TELEMETRY SNAPSHOT // ${new Date().toISOString()}`, 24, snapCanvas.height - 22);
+
+      const link = document.createElement('a');
+      link.download = `BAS_HAR_VISION_FRAME_${Date.now()}.png`;
+      link.href = snapCanvas.toDataURL('image/png');
+      link.click();
+
+      addLogEntry("SNAPSHOT", "Annotated high-resolution CV telemetry frame exported.", "NOMINAL");
+    });
+
+    document.getElementById('btnFullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    document.getElementById('btnAudioToggle').addEventListener('click', () => {
+      audioEngine.enabled = !audioEngine.enabled;
+      const label = document.getElementById('audioLabel');
+      const icon = document.getElementById('audioIcon');
+      if (audioEngine.enabled) {
+        label.textContent = 'AUDIO: ON';
+        icon.textContent = '🔊';
+        audioEngine.playTone(1200, 0.08);
+      } else {
+        label.textContent = 'AUDIO: MUTED';
+        icon.textContent = '🔇';
+      }
+    });
+
+    document.getElementById('btnExportLog').addEventListener('click', () => {
+      window.open('/api/logs/export', '_blank');
+    });
+
+    setInterval(() => {
+      const now = new Date();
+      const clock = document.getElementById('teleClock');
+      if (clock) {
+        clock.textContent = `${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}:${String(now.getUTCSeconds()).padStart(2,'0')} UTC`;
+      }
+    }, 1000);
+
+    // Shortcut: ESC key returns back to main website
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !document.fullscreenElement) {
+        window.location.href = '/';
+      }
+    });
+
+    window.addEventListener('load', () => {
+      startLaptopCamera().catch(() => {});
+    });
+  </script>
+</body>
+</html>

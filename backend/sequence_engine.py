@@ -83,7 +83,7 @@ class SequenceValidatorEngine:
             if self.current_step_index < len(self.steps):
                 next_step = self.steps[self.current_step_index]
                 next_step["status"] = "READY"
-                next_rec_title = f"Step 0{next_step['index']} — {next_step['title']}"
+                next_rec_title = f"Step 0{next_step['index']} -- {next_step['title']}"
             else:
                 next_rec_title = "Experiment Protocol Fully Concluded"
 
@@ -125,7 +125,7 @@ class SequenceValidatorEngine:
                 expected_step_title=expected_step_obj["title"],
                 detected_step_title=detected_step_obj["title"],
                 voice_alert_phrase=voice_alert,
-                next_recommended_step_title=f"⚠️ RETURN TO Step 0{skipped_step_index} — {skipped_obj['title']}",
+                next_recommended_step_title=f"[ALERT] RETURN TO Step 0{skipped_step_index} -- {skipped_obj['title']}",
                 is_valid=False
             )
 
@@ -146,8 +146,77 @@ class SequenceValidatorEngine:
                 expected_step_title=expected_step_obj["title"],
                 detected_step_title=detected_step_obj["title"],
                 voice_alert_phrase=voice_alert,
-                next_recommended_step_title=f"⚠️ PROTOCOL HALT: Verify Step 0{expected_step} status",
+                next_recommended_step_title=f"[ALERT] PROTOCOL HALT: Verify Step 0{expected_step} status",
                 is_valid=False
+            )
+
+    def process_camera_recognition(self, camera_id: str = "CAM_01", step_index: int = 2, deviation_type: str = "nominal", action_title: str = None) -> SequenceValidationResponse:
+        now_str = datetime.now().strftime("%H:%M:%S")
+        if deviation_type == "skipped":
+            skipped_step_index = 3
+            self.steps[skipped_step_index - 1]["status"] = "SKIPPED"
+            self.steps[skipped_step_index - 1]["badge_class"] = "alert-skip"
+            target_step = 4
+            self.steps[target_step - 1]["status"] = "UNEXPECTED"
+            self.steps[target_step - 1]["badge_class"] = "alert-skip"
+            self.current_step_index = target_step
+            self.last_status = "SEQUENCE_DEVIATION"
+            voice_alert = f"Camera alert: Sequence deviation detected. Step 0{skipped_step_index} has been skipped. Please return and place sample in centrifuge."
+            return SequenceValidationResponse(
+                timestamp=now_str,
+                status="SEQUENCE DEVIATION",
+                deviation_type="skipped",
+                expected_step_index=3,
+                detected_step_index=4,
+                expected_step_title=self.steps[2]["title"],
+                detected_step_title=self.steps[3]["title"],
+                voice_alert_phrase=voice_alert,
+                next_recommended_step_title=f"[ALERT] RETURN TO Step 0{skipped_step_index} -- {self.steps[skipped_step_index - 1]['title']}",
+                is_valid=False
+            )
+        elif deviation_type == "out_of_order":
+            self.steps[0]["status"] = "OUT-OF-ORDER"
+            self.steps[0]["badge_class"] = "alert-dev"
+            self.last_status = "OUT_OF_SEQUENCE"
+            voice_alert = "Warning. Camera detected activity out of sequence. Protocol halt."
+            return SequenceValidationResponse(
+                timestamp=now_str,
+                status="PROTOCOL DEVIATION",
+                deviation_type="out_of_order",
+                expected_step_index=self.current_step_index + 1 if self.current_step_index < 5 else 5,
+                detected_step_index=1,
+                expected_step_title=self.steps[min(self.current_step_index, 4)]["title"],
+                detected_step_title=self.steps[0]["title"],
+                voice_alert_phrase=voice_alert,
+                next_recommended_step_title="[ALERT] PROTOCOL HALT: Verify active step sequence",
+                is_valid=False
+            )
+        else:
+            step_idx = max(1, min(step_index, len(self.steps)))
+            self.current_step_index = step_idx
+            for i in range(step_idx):
+                self.steps[i]["status"] = "VALIDATED"
+                self.steps[i]["badge_class"] = "validated"
+            if step_idx < len(self.steps):
+                self.steps[step_idx]["status"] = "READY"
+                next_rec_title = f"Step 0{self.steps[step_idx]['index']} -- {self.steps[step_idx]['title']}"
+            else:
+                next_rec_title = "Experiment Protocol Fully Concluded"
+
+            self.last_status = "NOMINAL_VALIDATED"
+            detected_obj = self.steps[step_idx - 1]
+            voice_alert = f"Camera {camera_id}: Step 0{step_idx} validated. Next recommended step: {next_rec_title}."
+            return SequenceValidationResponse(
+                timestamp=now_str,
+                status="VALIDATED",
+                deviation_type="nominal",
+                expected_step_index=step_idx,
+                detected_step_index=step_idx,
+                expected_step_title=detected_obj["title"],
+                detected_step_title=detected_obj["title"],
+                voice_alert_phrase=voice_alert,
+                next_recommended_step_title=next_rec_title,
+                is_valid=True
             )
 
 sequence_engine = SequenceValidatorEngine()

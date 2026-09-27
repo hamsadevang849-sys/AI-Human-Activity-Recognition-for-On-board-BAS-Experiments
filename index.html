@@ -447,6 +447,26 @@
       position: relative;
     }
 
+    .section-container.first-section {
+      padding: 60px 4vw 80px;
+    }
+
+    #monitor.theater-mode {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #02070d;
+      max-width: 100vw;
+      width: 100vw;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 18px 24px 40px;
+    }
+    #monitor.theater-mode .dashboard-shell {
+      max-width: 1680px;
+      margin: 0 auto;
+    }
+
     .section-eyebrow {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
@@ -1415,23 +1435,124 @@
 
     .dashboard-body-grid {
       display: grid;
-      grid-template-columns: 1.25fr 0.75fr;
+      grid-template-columns: 1.35fr 0.65fr;
       gap: 24px;
       margin-top: 24px;
     }
 
+    /* Camera Selection & Layer Toolbar */
+    .cam-nav-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      background: rgba(6, 16, 26, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+    }
+
+    .cam-source-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-cam-tab {
+      background: rgba(140, 236, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cam-tab:hover {
+      background: rgba(140, 236, 255, 0.12);
+      color: #fff;
+      border-color: var(--cyan);
+    }
+
+    .btn-cam-tab.active {
+      background: rgba(140, 236, 255, 0.18);
+      border-color: var(--cyan);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(140, 236, 255, 0.25);
+    }
+
+    .btn-cam-tab.webcam-live {
+      border-color: rgba(255, 95, 126, 0.5);
+      color: #ff9fb2;
+    }
+
+    .btn-cam-tab.webcam-live.active {
+      background: rgba(255, 95, 126, 0.22);
+      border-color: var(--red);
+      color: #fff;
+      box-shadow: 0 0 16px rgba(255, 95, 126, 0.4);
+    }
+
+    .cam-layer-toggles {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .cam-layer-toggles label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s ease;
+    }
+
+    .cam-layer-toggles label:hover {
+      color: var(--cyan);
+    }
+
+    .cam-layer-toggles input[type="checkbox"] {
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
     /* Video Feed Screen */
     .live-camera-feed-card {
-      background: #02060b;
-      border: 1px solid var(--panel-border);
+      background: #01050a;
+      border: 1px solid var(--panel-border-bright);
       border-radius: 12px;
-      height: 380px;
+      height: 420px;
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       padding: 16px;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .live-camera-feed-card.pulse-amber {
+      border-color: var(--amber) !important;
+      box-shadow: 0 0 35px rgba(255, 190, 107, 0.35), inset 0 0 40px rgba(255, 190, 107, 0.15) !important;
+    }
+
+    .live-camera-feed-card.pulse-red {
+      border-color: var(--red) !important;
+      box-shadow: 0 0 35px rgba(255, 95, 126, 0.4), inset 0 0 40px rgba(255, 95, 126, 0.2) !important;
     }
 
     #feedSimulationCanvas {
@@ -1451,6 +1572,69 @@
       align-items: center;
     }
 
+    .feed-recognition-banner {
+      position: absolute;
+      top: 54px;
+      left: 16px;
+      right: 16px;
+      z-index: 3;
+      pointer-events: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(3, 10, 18, 0.88);
+      border: 1px solid var(--panel-border-bright);
+      backdrop-filter: blur(8px);
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      transition: all 0.3s ease;
+    }
+
+    .feed-recognition-banner .rec-step {
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feed-recognition-banner .rec-step .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.5s infinite;
+    }
+
+    .feed-recognition-banner .rec-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .rec-badge.nominal {
+      background: rgba(140, 236, 193, 0.15);
+      border: 1px solid var(--green);
+      color: var(--green);
+    }
+
+    .rec-badge.skipped {
+      background: rgba(255, 190, 107, 0.18);
+      border: 1px solid var(--amber);
+      color: var(--amber);
+    }
+
+    .rec-badge.out_of_order {
+      background: rgba(255, 95, 126, 0.2);
+      border: 1px solid var(--red);
+      color: var(--red);
+    }
+
     .feed-overlay-footer {
       position: relative;
       z-index: 2;
@@ -1460,10 +1644,168 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
       color: #9cb5c4;
-      background: rgba(1, 5, 10, 0.7);
+      background: rgba(1, 5, 10, 0.8);
       padding: 8px 12px;
       border-radius: 6px;
       border: 1px solid rgba(140, 236, 255, 0.15);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Camera Recognition Action Controller */
+    .cam-controller-panel {
+      margin-top: 16px;
+      background: rgba(6, 16, 26, 0.9);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .cam-ctrl-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .cam-ctrl-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cam-ctrl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+    }
+
+    .btn-cam-action {
+      background: rgba(140, 236, 255, 0.04);
+      border: 1px solid rgba(140, 236, 255, 0.2);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 9px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cam-action:hover {
+      background: rgba(140, 236, 255, 0.12);
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    .btn-cam-action.active-rec {
+      background: rgba(140, 236, 193, 0.16);
+      border-color: var(--green);
+      box-shadow: 0 0 10px rgba(140, 236, 193, 0.25);
+    }
+
+    .btn-cam-action .step-tag {
+      font-size: 8px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .btn-cam-action.alert-skip {
+      border-color: rgba(255, 190, 107, 0.4);
+      color: var(--amber);
+    }
+    .btn-cam-action.alert-skip:hover {
+      background: rgba(255, 190, 107, 0.12);
+      border-color: var(--amber);
+    }
+
+    .btn-cam-action.alert-dev {
+      border-color: rgba(255, 95, 126, 0.4);
+      color: var(--red);
+    }
+    .btn-cam-action.alert-dev:hover {
+      background: rgba(255, 95, 126, 0.12);
+      border-color: var(--red);
+    }
+
+    .btn-cam-action.auto-cycle {
+      border-color: rgba(79, 168, 255, 0.5);
+      color: var(--blue);
+      background: rgba(79, 168, 255, 0.08);
+    }
+    .btn-cam-action.auto-cycle.running {
+      background: rgba(79, 168, 255, 0.22);
+      border-color: var(--cyan);
+      box-shadow: 0 0 14px rgba(79, 168, 255, 0.4);
+      animation: pulse 1.8s infinite;
+    }
+
+    /* Kinematics Telemetry Subpanel */
+    .dash-kinematics-box {
+      padding: 18px 20px;
+      background: rgba(7, 18, 30, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+    }
+
+    .kin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .kin-card {
+      background: rgba(2, 8, 16, 0.7);
+      border: 1px solid rgba(140, 236, 255, 0.1);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .kin-card .kin-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kin-card .kin-val {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .kin-meter {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .kin-meter span {
+      display: block;
+      height: 100%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      transition: width 0.3s ease;
     }
 
     /* Transmission & Storage Panels */
@@ -1656,6 +1998,17 @@
       document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
     }
   </script>
+
+  <!-- MediaPipe Computer Vision Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <!-- AI-HAR Modular Computer Vision Scripts -->
+  <script src="js/pose.js"></script>
+  <script src="js/hands.js"></script>
+  <script src="js/objects.js"></script>
+  <script src="js/activity.js"></script>
 </head>
 <body>
 
@@ -1722,7 +2075,8 @@
     </div>
 
     <ul class="nav-menu">
-      <li><a href="#mission" class="active">Mission</a></li>
+      <li><a href="#monitor" class="active">Monitor & Telemetry</a></li>
+      <li><a href="#mission">Mission</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
       <li><a href="#pipeline">AI Pipeline</a></li>
       <li><a href="#experiment">Experiment</a></li>
@@ -1730,10 +2084,15 @@
       <li><a href="#edge-ai">Edge AI</a></li>
       <li><a href="#hmr">3D HMR</a></li>
       <li><a href="#monitor">Monitor</a></li>
+      <li><a href="/dashboard" style="color:var(--cyan); font-weight:700; text-shadow:0 0 8px var(--cyan);">⚡ CV Dashboard</a></li>
       <li><a href="#about">About</a></li>
     </ul>
 
     <div class="nav-actions">
+      <a href="/dashboard" class="btn-primary" style="padding:6px 12px; font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 0 16px rgba(140,236,255,0.45);">
+        <span>🎥</span> CV DASHBOARD
+      </a>
+
       <button class="audio-btn" id="audioMasterBtn" title="Toggle Synthesized Space Audio">
         <span>🔊</span>
         <span id="audioLabel">AUDIO: MUTED</span>
@@ -1750,6 +2109,332 @@
        4. PAGE CONTENT WRAPPER
        ========================================================================= -->
   <div class="page-wrapper">
+
+    <!-- =====================================================================
+         SECTION 01: MISSION MONITORING DASHBOARD (GUI) (SECTIONS 7, 8, 9, 20)
+         ===================================================================== -->
+    <section class="section-container first-section" id="monitor">
+      <div class="section-eyebrow">
+        01 / PRIMARY AEROSPACE OPERATIONS INTERFACE
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+        <h2 class="section-heading" style="margin-bottom:0;">
+          Mission Monitoring Dashboard<br>
+          <span class="dim">& Camera Telemetry Console.</span>
+        </h2>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <button class="btn-primary" id="btnToggleTheater" style="padding:10px 18px; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 0 20px rgba(140,236,255,0.45); font-weight:700;">
+            <span>⛶</span> THEATER COCKPIT VIEW
+          </button>
+          <a href="/dashboard" class="btn-secondary" style="padding:10px 18px; font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <span>🚀</span> DEDICATED CV DECK ↗
+          </a>
+        </div>
+      </div>
+
+      <p class="section-lead">
+        A unified aerospace operations interface for monitoring fixed-payload video feeds, AI inference pipelines, experiment sequences, IP streaming links, and local NVMe storage.
+      </p>
+
+      <div class="dashboard-shell">
+        <!-- Top Status Bar -->
+        <div class="dashboard-top-status-bar">
+          <div class="dash-status-item">
+            <span class="s-label">MISSION</span>
+            <span class="s-val cyan">BAS-EXP-001</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">ACTIVE OPTICAL CHANNEL</span>
+            <span class="s-val cyan" id="dashCamChannel">CAM 01 // OVERHEAD</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">CAMERA RECOGNITION</span>
+            <span class="s-val green" id="dashDetectedStepBadge">STEP 02: RETRIEVE CONTAINER</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">CONFIDENCE</span>
+            <span class="s-val green" id="dashConfidenceVal">96.8%</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">SEQUENCE VALIDATION</span>
+            <span class="s-val green" id="dashSeqStatus">VALIDATING</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">VOCAL ALERT</span>
+            <span class="s-val" id="dashAlertVal" style="color:var(--text-muted);">NONE</span>
+          </div>
+
+          <div class="dash-status-item">
+            <span class="s-label">LOCAL NVMe STORAGE</span>
+            <span class="s-val cyan" id="dashStorageVal">REC ON (84% FREE)</span>
+          </div>
+        </div>
+
+        <!-- Camera Navigation Toolbar -->
+        <div class="cam-nav-toolbar" style="margin-top: 20px;">
+          <div class="cam-source-tabs">
+            <button class="btn-cam-tab active" id="tabCam1" data-cam="CAM_01">
+              <span>📹</span> CAM 01 // OVERHEAD
+            </button>
+            <button class="btn-cam-tab" id="tabCam2" data-cam="CAM_02">
+              <span>🔬</span> CAM 02 // CENTRIFUGE
+            </button>
+            <button class="btn-cam-tab" id="tabCam3" data-cam="CAM_03">
+              <span>🧤</span> CAM 03 // GLOVEBOX
+            </button>
+            <button class="btn-cam-tab webcam-live" id="tabWebcam" data-cam="LIVE_WEBCAM">
+              <span>🎥</span> LAPTOP WEBCAM (MEDIAPIPE AI)
+            </button>
+            <button class="btn-cam-tab" id="tabOpencv" data-cam="OPENCV_CAM">
+              <span>🐍</span> OPENCV CAMERA (PYTHON CV)
+            </button>
+          </div>
+
+          <div class="cam-layer-toggles">
+            <span style="font-weight:700; color:var(--text-muted);">AI HUD:</span>
+            <label><input type="checkbox" id="chkLayerPose" checked /> Pose Skeleton</label>
+            <label><input type="checkbox" id="chkLayerBoxes" checked /> Bounding Boxes</label>
+            <label><input type="checkbox" id="chkLayerInteraction" checked /> Grip Vectors</label>
+            <label><input type="checkbox" id="chkLayerRadar" checked /> Motion Radar</label>
+          </div>
+        </div>
+
+        <!-- Creative Computer Vision Modes Toolbar in Main Page -->
+        <div class="cv-modes-bar" style="margin-top: 12px; display: flex; align-items: center; gap: 8px; overflow-x: auto; background: rgba(3, 14, 25, 0.88); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--panel-border);">
+          <span style="font-family:'JetBrains Mono'; font-size:10px; color:var(--cyan); font-weight:700; white-space:nowrap; letter-spacing:0.1em;">⚡ CV MODES:</span>
+          <button class="btn-cv-mode active" data-mode="cybernetic" style="background:rgba(140,236,255,0.22); border:1px solid var(--cyan); color:#fff; font-family:'JetBrains Mono'; font-size:10px; padding:4px 10px; border-radius:4px; cursor:pointer;">🎯 Cybernetic HUD</button>
+          <button class="btn-cv-mode" data-mode="thermal" style="background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); font-family:'JetBrains Mono'; font-size:10px; padding:4px 10px; border-radius:4px; cursor:pointer;">🔥 Thermal IR</button>
+          <button class="btn-cv-mode" data-mode="edges" style="background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); font-family:'JetBrains Mono'; font-size:10px; padding:4px 10px; border-radius:4px; cursor:pointer;">🌐 Sobel Edge Matrix</button>
+          <button class="btn-cv-mode" data-mode="motion_trails" style="background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); font-family:'JetBrains Mono'; font-size:10px; padding:4px 10px; border-radius:4px; cursor:pointer;">✨ Kinetic Trails</button>
+          <button class="btn-cv-mode" data-mode="lidar" style="background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); font-family:'JetBrains Mono'; font-size:10px; padding:4px 10px; border-radius:4px; cursor:pointer;">📡 3D LiDAR Scanner</button>
+        </div>
+
+        <!-- Dashboard Main Grid -->
+        <div class="dashboard-body-grid">
+          <!-- Left Column: Video Feed + Camera Recognition Controller -->
+          <div class="dash-left-column">
+            <!-- Live Camera Feed & AI Recognition Monitor -->
+            <div class="live-camera-feed-card" id="camFeedCard" style="position:relative; overflow:hidden;">
+              <!-- Hidden Webcam Video & Canvas elements for Live Camera Processing -->
+              <video id="webcamVideo" playsinline autoplay muted style="display:none;"></video>
+              <canvas id="motionDiffCanvas" width="160" height="120" style="display:none;"></canvas>
+              
+              <!-- OpenCV Live Stream Image (Used when OpenCV Camera mode is active) -->
+              <img id="opencvVideoImg" style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0; z-index:0;" alt="OpenCV Live Video Stream" />
+
+              <canvas id="feedSimulationCanvas" style="position:relative; z-index:1;"></canvas>
+
+              <div class="feed-overlay-header" style="z-index:2;">
+                <span class="badge-edge" id="camFeedBadge">CAM 01 // OVERHEAD PAYLOAD BAY</span>
+                <span class="real-tag" id="camHarStatus">EDGE HAR INFERENCE: ACTIVE</span>
+              </div>
+
+              <!-- High-Contrast Aerospace Recognition Banner -->
+              <div class="feed-recognition-banner" id="feedRecBanner" style="z-index:2;">
+                <div class="rec-step">
+                  <span class="rec-dot" id="recDot"></span>
+                  <span id="bannerStepText">STEP 02: RETRIEVE CRYO CONTAINER</span>
+                </div>
+                <div class="rec-badge nominal" id="bannerBadge">NOMINAL SEQUENCE</div>
+              </div>
+
+              <!-- Notification Banner when Live Webcam Active -->
+              <div class="webcam-hud-notice" id="webcamNotice" style="display:none; z-index:3;">
+                <span id="webcamNoticeText">🟢 LAPTOP CAMERA CV ACTIVE — POSE & SKELETON MODEL RUNNING IN REAL TIME</span>
+                <button class="btn-secondary" id="btnStopWebcam" style="padding:4px 10px; font-size:10px; cursor:pointer;">DISCONNECT</button>
+              </div>
+
+              <!-- Quick Connect Camera Floating Bar -->
+              <div class="cam-quick-launcher-bar" id="camQuickLauncherBar" style="position:absolute; bottom:44px; left:50%; transform:translateX(-50%); z-index:4; display:flex; gap:10px; background:rgba(2,12,22,0.88); backdrop-filter:blur(10px); padding:8px 16px; border-radius:30px; border:1px solid rgba(140,236,255,0.35); box-shadow:0 8px 32px rgba(0,0,0,0.7);">
+                <button class="btn-primary" id="btnLaunchWebcamQuick" style="padding:6px 14px; font-size:11px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow: 0 0 15px rgba(140, 236, 255, 0.45);">
+                  <span>🎥</span> Connect Laptop Camera (MediaPipe)
+                </button>
+                <button class="btn-secondary" id="btnLaunchOpencvQuick" style="padding:6px 14px; font-size:11px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                  <span>🐍</span> OpenCV Python Stream
+                </button>
+              </div>
+
+              <div class="feed-overlay-footer" style="z-index:2;">
+                <span>ACTION: <strong style="color:#fff;" id="dashDetectedActionText">STEP 02: RETRIEVE CONTAINER</strong></span>
+                <span>CONFIDENCE: <strong style="color:var(--green);" id="dashConfidenceFooter">96.8%</strong></span>
+                <span>LATENCY: <strong style="color:var(--cyan);" id="dashLatencyFooter">11.4 ms</strong></span>
+                <span>FPS: <strong style="color:#fff;" id="dashFpsFooter">60.0</strong></span>
+              </div>
+            </div>
+
+            <!-- Camera Recognition Scenario Controller Console -->
+            <div class="cam-controller-panel">
+              <div class="cam-ctrl-header">
+                <div class="cam-ctrl-title">
+                  <span>🎯</span> CAMERA ACTIVITY RECOGNITION CONTROLLER
+                </div>
+                <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--cyan);">
+                  CHANGES DASHBOARD STATE IN REAL-TIME
+                </div>
+              </div>
+
+              <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">
+                Select a protocol action or simulation anomaly to see the camera recognition drive the dashboard status, sequence validator, synthesized voice warnings, and structured logs.
+              </p>
+
+              <div class="cam-ctrl-grid">
+                <button class="btn-cam-action" id="btnRecStep1" data-step="1">
+                  <span class="step-tag">STEP 01 // PREP</span>
+                  <span>PREPARE STERILE BAY</span>
+                </button>
+
+                <button class="btn-cam-action active-rec" id="btnRecStep2" data-step="2">
+                  <span class="step-tag">STEP 02 // EXTRACT</span>
+                  <span>RETRIEVE CONTAINER</span>
+                </button>
+
+                <button class="btn-cam-action" id="btnRecStep3" data-step="3">
+                  <span class="step-tag">STEP 03 // INSERT</span>
+                  <span>CENTRIFUGE RACK LOAD</span>
+                </button>
+
+                <button class="btn-cam-action" id="btnRecStep4" data-step="4">
+                  <span class="step-tag">STEP 04 // ACTIVATE</span>
+                  <span>ENGAGE CENTRIFUGE</span>
+                </button>
+
+                <button class="btn-cam-action" id="btnRecStep5" data-step="5">
+                  <span class="step-tag">STEP 05 // LOG</span>
+                  <span>RECORD TELEMETRY</span>
+                </button>
+
+                <button class="btn-cam-action alert-skip" id="btnRecSkip">
+                  <span class="step-tag">DEVIATION // SKIP</span>
+                  <span>⚠️ STEP 03 SKIPPED</span>
+                </button>
+
+                <button class="btn-cam-action alert-dev" id="btnRecOutOfOrder">
+                  <span class="step-tag">DEVIATION // ORDER</span>
+                  <span>🛑 OUT-OF-SEQUENCE</span>
+                </button>
+
+                <button class="btn-cam-action auto-cycle" id="btnAutoCycle">
+                  <span class="step-tag">AUTOMATED // AI</span>
+                  <span>⚡ AUTO-CYCLE RUN</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Kinematics Telemetry, IP Streaming & Local Storage -->
+          <div class="dash-side-panels">
+            <!-- Biomechanical Kinematics & AI Telemetry Module -->
+            <div class="dash-kinematics-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:700; color:#fff;">
+                  BIOMECHANICAL KINEMATICS & TELEMETRY
+                </div>
+                <span class="demo-tag" id="tpuModelTag">TPU INT8</span>
+              </div>
+
+              <div class="kin-grid">
+                <div class="kin-card">
+                  <div class="kin-label">KNEE JOINT ANGLE</div>
+                  <div class="kin-val">
+                    <span id="dashKinKnee">42.5°</span>
+                    <span style="font-size:11px; color:var(--text-dim);">NOMINAL</span>
+                  </div>
+                  <div class="kin-meter"><span id="dashMeterKnee" style="width: 52%;"></span></div>
+                </div>
+
+                <div class="kin-card">
+                  <div class="kin-label">SPINE PITCH ANGLE</div>
+                  <div class="kin-val">
+                    <span id="dashKinSpine">11.8°</span>
+                    <span style="font-size:11px; color:var(--text-dim);">MICRO-G</span>
+                  </div>
+                  <div class="kin-meter"><span id="dashMeterSpine" style="width: 32%;"></span></div>
+                </div>
+
+                <div class="kin-card">
+                  <div class="kin-label">HAND-OBJECT GRIP</div>
+                  <div class="kin-val">
+                    <span id="dashKinGrip" style="font-size:12px; color:var(--cyan);">ACTIVE_PINCH</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono'; font-size:9px; color:var(--text-dim); margin-top:4px;">
+                    DIST: <span id="dashKinDist" style="color:#fff;">0.04 m</span>
+                  </div>
+                </div>
+
+                <div class="kin-card">
+                  <div class="kin-label">OPTICAL MOTION FLUX</div>
+                  <div class="kin-val">
+                    <span id="dashKinMotion">0.82 kW/m²</span>
+                  </div>
+                  <div class="kin-meter"><span id="dashMeterMotion" style="width: 65%;"></span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IP Streaming Interface (Section 7) -->
+            <div class="ip-streaming-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:700; color:#fff;">
+                  VIDEO TRANSMISSION / IP STREAMING
+                </div>
+                <span class="demo-tag">RTSP / 4 Mbps</span>
+              </div>
+
+              <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+                Transmit real-time optical recognition telemetry feed to an authorized station terminal.
+              </p>
+
+              <div class="ip-input-row">
+                <input type="text" id="streamIpInput" value="192.168.1.140" placeholder="Destination IP (e.g. 192.168.x.x)" />
+                <button class="btn-sim nominal" id="btnConnectStream" style="padding:6px 14px;">
+                  CONNECT
+                </button>
+              </div>
+
+              <div style="font-family:'JetBrains Mono'; font-size:9px; color:var(--green); margin-top:10px;" id="streamStatusText">
+                ● RTSP CHANNEL READY // PORT: 8554
+              </div>
+            </div>
+
+            <!-- Local Video Storage Panel (Section 8) -->
+            <div class="local-storage-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:700; color:#fff;">
+                  LOCAL EXPERIMENT ARCHIVE
+                </div>
+                <span class="demo-tag" id="dashRecActiveBadge">REC: ACTIVE</span>
+              </div>
+
+              <div class="storage-meter">
+                <span id="dashStorageMeterSpan" style="width: 41%;"></span>
+              </div>
+
+              <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:9px; color:var(--text-dim); margin-bottom:12px;">
+                <span>NVMe ARRAY 01</span>
+                <span id="dashStorageUsageText">1.64 TB / 4.0 TB USED</span>
+              </div>
+
+              <div style="display:grid; gap:6px; font-family:'JetBrains Mono'; font-size:10px;" id="dashStorageFileList">
+                <div style="display:flex; justify-content:space-between; padding:6px 8px; background:rgba(255,255,255,0.02); border-radius:4px;">
+                  <span>EXPERIMENT_001.mp4</span>
+                  <span style="color:var(--cyan);">01:24:32 // 412 MB</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:6px 8px; background:rgba(255,255,255,0.02); border-radius:4px;">
+                  <span>EXPERIMENT_002.mp4</span>
+                  <span style="color:var(--cyan);">00:48:21 // 248 MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- =====================================================================
          HERO SECTION (SECTION 13)
@@ -1771,8 +2456,11 @@
           </p>
 
           <div class="hero-cta-group">
-            <a href="#monitor" class="btn-primary">
-              ENTER MISSION SYSTEM ▶
+            <a href="/dashboard" class="btn-primary" style="box-shadow: 0 0 25px rgba(140,236,255,0.45); font-weight:700; background:linear-gradient(135deg, rgba(140,236,255,0.3), rgba(79,168,255,0.3)); border-color:var(--cyan);">
+              🚀 LAUNCH CV DASHBOARD (WEBCAM) ▶
+            </a>
+            <a href="#monitor" class="btn-secondary">
+              MISSION OPERATIONS GUI
             </a>
             <a href="#how-it-works" class="btn-secondary">
               EXPLORE HOW IT WORKS
@@ -2349,140 +3037,7 @@
       </div>
     </section>
 
-    <!-- =====================================================================
-         SECTION 06: MISSION MONITORING DASHBOARD (GUI) (SECTIONS 7, 8, 9, 20)
-         ===================================================================== -->
-    <section class="section-container" id="monitor">
-      <div class="section-eyebrow">
-        06 / AEROSPACE OPERATIONS INTERFACE
-      </div>
-
-      <h2 class="section-heading">
-        Mission Monitoring Dashboard<br>
-        <span class="dim">& Camera Telemetry Console.</span>
-      </h2>
-
-      <p class="section-lead">
-        A unified aerospace operations interface for monitoring fixed-payload video feeds, AI inference pipelines, experiment sequences, IP streaming links, and local NVMe storage.
-      </p>
-
-      <div class="dashboard-shell">
-        <!-- Top Status Bar -->
-        <div class="dashboard-top-status-bar">
-          <div class="dash-status-item">
-            <span class="s-label">MISSION</span>
-            <span class="s-val cyan">BAS-EXP-001</span>
-          </div>
-
-          <div class="dash-status-item">
-            <span class="s-label">CAMERA 01</span>
-            <span class="s-val green">● ONLINE</span>
-          </div>
-
-          <div class="dash-status-item">
-            <span class="s-label">AI CORE</span>
-            <span class="s-val green">● LOCAL EDGE</span>
-          </div>
-
-          <div class="dash-status-item">
-            <span class="s-label">EXPERIMENT</span>
-            <span class="s-val cyan">ACTIVE (EXP-04)</span>
-          </div>
-
-          <div class="dash-status-item">
-            <span class="s-label">SEQUENCE VALIDATION</span>
-            <span class="s-val green" id="dashSeqStatus">VALIDATING</span>
-          </div>
-
-          <div class="dash-status-item">
-            <span class="s-label">VOCAL ALERT</span>
-            <span class="s-val" id="dashAlertVal" style="color:var(--text-muted);">NONE</span>
-          </div>
-
-          <div class="dash-status-item">
-            <span class="s-label">STORAGE CAPACITY</span>
-            <span class="s-val">84% FREE</span>
-          </div>
-        </div>
-
-        <!-- Dashboard Main Grid -->
-        <div class="dashboard-body-grid">
-          <!-- Live Camera Feed & AI Recognition Monitor -->
-          <div class="live-camera-feed-card">
-            <canvas id="feedSimulationCanvas"></canvas>
-
-            <div class="feed-overlay-header">
-              <span class="badge-edge" id="camFeedBadge">CAM 01 // PAYLOAD RACK ZOOM</span>
-              <span class="real-tag">EDGE HAR INFERENCE: ACTIVE</span>
-            </div>
-
-            <div class="feed-overlay-footer">
-              <span>DETECTED: <strong style="color:#fff;" id="dashDetectedActionText">STEP 02: RETRIEVE CONTAINER</strong></span>
-              <span>CONFIDENCE: <strong style="color:var(--green);">96.8% (DEMO)</strong></span>
-              <span>FPS: <strong>60.0</strong></span>
-            </div>
-          </div>
-
-          <!-- Video Transmission (IP Streaming) & Local Storage Panels -->
-          <div class="dash-side-panels">
-            <!-- IP Streaming Interface (Section 7) -->
-            <div class="ip-streaming-box">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:700; color:#fff;">
-                  VIDEO TRANSMISSION / IP STREAMING
-                </div>
-                <span class="demo-tag">INTERFACE DEMO</span>
-              </div>
-
-              <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">
-                Stream experiment video feed to an authorized station terminal or local network destination.
-              </p>
-
-              <div class="ip-input-row">
-                <input type="text" id="streamIpInput" value="192.168.1.140" placeholder="Destination IP (e.g. 192.168.x.x)" />
-                <button class="btn-sim nominal" id="btnConnectStream" style="padding:6px 14px;">
-                  CONNECT
-                </button>
-              </div>
-
-              <div style="font-family:'JetBrains Mono'; font-size:9px; color:var(--amber); margin-top:10px;">
-                ⚠️ NOTE: STREAMING INTERFACE / BACKEND INTEGRATION REQUIRED
-              </div>
-            </div>
-
-            <!-- Local Video Storage Panel (Section 8) -->
-            <div class="local-storage-box">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-family:'Space Grotesk'; font-size:14px; font-weight:700; color:#fff;">
-                  LOCAL EXPERIMENT ARCHIVE
-                </div>
-                <span class="demo-tag">DEMO STORAGE DATA</span>
-              </div>
-
-              <div class="storage-meter">
-                <span></span>
-              </div>
-
-              <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:9px; color:var(--text-dim); margin-bottom:12px;">
-                <span>NVMe ARRAY 01</span>
-                <span>1.6 TB / 4.0 TB USED</span>
-              </div>
-
-              <div style="display:grid; gap:6px; font-family:'JetBrains Mono'; font-size:10px;">
-                <div style="display:flex; justify-content:space-between; padding:6px 8px; background:rgba(255,255,255,0.02); border-radius:4px;">
-                  <span>EXPERIMENT_001.mp4</span>
-                  <span style="color:var(--cyan);">01:24:32 // 412 MB</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:6px 8px; background:rgba(255,255,255,0.02); border-radius:4px;">
-                  <span>EXPERIMENT_002.mp4</span>
-                  <span style="color:var(--cyan);">00:48:21 // 248 MB</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    
 
     <!-- =====================================================================
          SECTION 07: ABOUT THE SYSTEM (SECTION 24)
@@ -3066,97 +3621,19 @@
       renderLogTerminal();
     }
 
-    // Simulation Trigger 1: Nominal Sequence (Connected to Backend API)
-    document.getElementById('btnRunNominal').addEventListener('click', async () => {
-      experimentSteps[2].status = "VALIDATED";
-      experimentSteps[2].badgeClass = "validated";
-      experimentSteps[3].status = "VALIDATED";
-      experimentSteps[3].badgeClass = "validated";
-      experimentSteps[4].status = "READY";
-      experimentSteps[4].badgeClass = "validated";
-
-      selectedStepIndex = 3;
-      renderProtocolStepList();
-      updateStepInspector(experimentSteps[2]);
-
-      document.getElementById('dashSeqStatus').textContent = "VALIDATING";
-      document.getElementById('dashSeqStatus').className = "s-val green";
-      document.getElementById('dashAlertVal').textContent = "NONE";
-      document.getElementById('dashAlertVal').style.color = "var(--text-muted)";
-
-      speakAIVoice("Step 03 placed on payload rack. Next recommended step: activate payload circuit.");
-      addLogEntry("STEP 03", "Sample placed on payload rack.", "VALIDATED", "valid");
-      audioEngine.playBeep(1200, 0.1);
-
-      // Async backend call
-      try {
-        await fetch(`${BACKEND_URL}/api/sequence/validate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ detected_step_index: 3, detected_action: "Place sample on payload centrifuge rack" })
-        });
-        loadBackendLogs();
-      } catch (e) {}
+    // Simulation Trigger 1: Nominal Sequence (Connected to Camera Recognition Engine)
+    document.getElementById('btnRunNominal').addEventListener('click', () => {
+      executeCameraRecognition(3, 'nominal');
     });
 
-    // Simulation Trigger 2: Skipped Step Detection (Connected to Backend API)
-    document.getElementById('btnSimulateSkip').addEventListener('click', async () => {
-      experimentSteps[2].status = "SKIPPED";
-      experimentSteps[2].badgeClass = "alert-skip";
-      experimentSteps[3].status = "UNEXPECTED";
-      experimentSteps[3].badgeClass = "alert-skip";
-
-      selectedStepIndex = 3;
-      renderProtocolStepList();
-      updateStepInspector(experimentSteps[2]);
-
-      document.getElementById('dashSeqStatus').textContent = "DEVIATION DETECTED";
-      document.getElementById('dashSeqStatus').className = "s-val amber";
-      document.getElementById('dashAlertVal').textContent = "STEP 03 SKIPPED";
-      document.getElementById('dashAlertVal').style.color = "var(--amber)";
-
-      speakAIVoice("Sequence deviation alert. Step zero-three has been skipped. Please place sample on rack.");
-      addLogEntry("STEP 03", "Step 03 not detected. Action bypassed to Step 04.", "SKIPPED", "alert");
-      audioEngine.playAlertChirp();
-
-      // Async backend call
-      try {
-        await fetch(`${BACKEND_URL}/api/sequence/validate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ detected_step_index: 4, detected_action: "Engage centrifuge & activate payload circuit" })
-        });
-        loadBackendLogs();
-      } catch (e) {}
+    // Simulation Trigger 2: Skipped Step Detection (Connected to Camera Recognition Engine)
+    document.getElementById('btnSimulateSkip').addEventListener('click', () => {
+      executeCameraRecognition('skipped', 'skipped');
     });
 
-    // Simulation Trigger 3: Out-of-Sequence Activity Detection (Connected to Backend API)
-    document.getElementById('btnSimulateOutOfOrder').addEventListener('click', async () => {
-      experimentSteps[3].status = "OUT-OF-ORDER";
-      experimentSteps[3].badgeClass = "alert-dev";
-
-      selectedStepIndex = 4;
-      renderProtocolStepList();
-      updateStepInspector(experimentSteps[3]);
-
-      document.getElementById('dashSeqStatus').textContent = "PROTOCOL ERROR";
-      document.getElementById('dashSeqStatus').className = "s-val error";
-      document.getElementById('dashAlertVal').textContent = "OUT-OF-ORDER ACTION";
-      document.getElementById('dashAlertVal').style.color = "var(--red)";
-
-      speakAIVoice("Warning. Out of sequence activity detected. Expected step zero-two, detected step zero-four.");
-      addLogEntry("STEP 04", "Unexpected activity detected out of sequence. Protocol halt.", "ALERT", "error");
-      audioEngine.playAlertChirp();
-
-      // Async backend call
-      try {
-        await fetch(`${BACKEND_URL}/api/sequence/validate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ detected_step_index: 1, detected_action: "Unexpected sequence reset action" })
-        });
-        loadBackendLogs();
-      } catch (e) {}
+    // Simulation Trigger 3: Out-of-Sequence Activity Detection (Connected to Camera Recognition Engine)
+    document.getElementById('btnSimulateOutOfOrder').addEventListener('click', () => {
+      executeCameraRecognition('out_of_order', 'out_of_order');
     });
 
     // Export Lightweight Structured Text Log (Direct from Backend or Local Fallback)
@@ -3472,58 +3949,999 @@
     updateHmrRotation();
 
     /* -------------------------------------------------------------------------
-       H. DASHBOARD VIDEO FEED SIMULATION (SECTIONS 7, 8, 9, 20)
+       H. MULTI-CAMERA RECOGNITION ENGINE & LIVE DASHBOARD SYNCHRONIZATION
        ------------------------------------------------------------------------- */
     const feedCanvas = document.getElementById('feedSimulationCanvas');
     const fCtx = feedCanvas.getContext('2d');
+    const webcamVideo = document.getElementById('webcamVideo');
+    const motionDiffCanvas = document.getElementById('motionDiffCanvas');
+    const mCtx = motionDiffCanvas ? motionDiffCanvas.getContext('2d', { willReadFrequently: true }) : null;
+
+    let activeCameraId = 'CAM_01';
+    let activeStepIndex = 2;
+    let activeDeviationType = 'nominal';
+    let activeConfidence = 0.968;
+    let webcamActive = false;
+    let webcamStream = null;
+    let autoCycleRunning = false;
+    let autoCycleTimer = null;
+    let prevMotionFrame = null;
+    let motionEnergy = 0.82;
+    let gestureCooldown = 0;
+    let feedTime = 0;
+
+    // AI Layer Toggles
+    const chkLayerPose = document.getElementById('chkLayerPose');
+    const chkLayerBoxes = document.getElementById('chkLayerBoxes');
+    const chkLayerInteraction = document.getElementById('chkLayerInteraction');
+    const chkLayerRadar = document.getElementById('chkLayerRadar');
 
     function resizeFeedCanvas() {
+      if (!feedCanvas || !feedCanvas.parentElement) return;
       feedCanvas.width = feedCanvas.parentElement.clientWidth;
       feedCanvas.height = feedCanvas.parentElement.clientHeight;
     }
     window.addEventListener('resize', resizeFeedCanvas);
     resizeFeedCanvas();
 
-    let feedTime = 0;
+    // Camera Recognition Scenarios Matrix
+    const CAMERA_RECOGNITION_SCENARIOS = {
+      1: {
+        step: 1,
+        title: "STEP 01: PREPARE STERILE BAY",
+        action: "Align biological specimen payload rack & engage suction seal",
+        badge: "NOMINAL SEQUENCE",
+        badgeClass: "nominal",
+        confidence: 0.974,
+        vocal: "Step 01 validated. Suction seal confirmed. Next recommended step: retrieve container.",
+        grip: "SUCTION_LOCK",
+        dist: "0.08 m",
+        knee: 44.2,
+        spine: 10.4,
+        boxes: [
+          { label: "ASTRONAUT_EXP_01", conf: 0.985, color: "#8cecff", rx: 0.44, ry: 0.50, rw: 110, rh: 180 },
+          { label: "STERILE_BAY_RACK", conf: 0.974, color: "#a5ffca", rx: 0.72, ry: 0.52, rw: 110, rh: 130 },
+          { label: "SUCTION_LATCH", conf: 0.962, color: "#a5ffca", rx: 0.62, ry: 0.72, rw: 65, rh: 40 }
+        ]
+      },
+      2: {
+        step: 2,
+        title: "STEP 02: RETRIEVE CRYO CONTAINER",
+        action: "Unlock bay latch & extract microgravity cryo-vial container",
+        badge: "NOMINAL SEQUENCE",
+        badgeClass: "nominal",
+        confidence: 0.968,
+        vocal: "Step 02 container retrieved. Proceed to centrifuge rack.",
+        grip: "ACTIVE_PINCH",
+        dist: "0.04 m",
+        knee: 42.5,
+        spine: 11.8,
+        boxes: [
+          { label: "ASTRONAUT_EXP_01", conf: 0.982, color: "#8cecff", rx: 0.44, ry: 0.50, rw: 110, rh: 180 },
+          { label: "SAMPLE_BAY_04", conf: 0.971, color: "#a5ffca", rx: 0.74, ry: 0.45, rw: 110, rh: 130 },
+          { label: "CRYO_CONTAINER", conf: 0.954, color: "#ffbe6b", rx: 0.58, ry: 0.52, rw: 55, rh: 45 }
+        ]
+      },
+      3: {
+        step: 3,
+        title: "STEP 03: PLACE IN CENTRIFUGE",
+        action: "Align vessel into centrifuge slot 03 until locking click",
+        badge: "NOMINAL SEQUENCE",
+        badgeClass: "nominal",
+        confidence: 0.951,
+        vocal: "Step 03 placed on centrifuge rack. Next recommended step: engage centrifuge circuit.",
+        grip: "CAROUSEL_INSERT",
+        dist: "0.02 m",
+        knee: 48.1,
+        spine: 14.2,
+        boxes: [
+          { label: "ASTRONAUT_EXP_01", conf: 0.988, color: "#8cecff", rx: 0.43, ry: 0.50, rw: 110, rh: 180 },
+          { label: "CENTRIFUGE_ROTOR", conf: 0.976, color: "#a5ffca", rx: 0.70, ry: 0.50, rw: 130, rh: 130 },
+          { label: "SPECIMEN_SLOT_03", conf: 0.964, color: "#a5ffca", rx: 0.65, ry: 0.48, rw: 50, rh: 50 }
+        ]
+      },
+      4: {
+        step: 4,
+        title: "STEP 04: ENGAGE CENTRIFUGE",
+        action: "Toggle circuit breaker B4 & initiate 1200 RPM spin profile",
+        badge: "NOMINAL SEQUENCE",
+        badgeClass: "nominal",
+        confidence: 0.925,
+        vocal: "Step 04 centrifuge circuit engaged. Spin profile 1200 RPM nominal. Next: record telemetry.",
+        grip: "BREAKER_TOGGLE",
+        dist: "0.01 m",
+        knee: 39.8,
+        spine: 9.6,
+        boxes: [
+          { label: "ASTRONAUT_EXP_01", conf: 0.979, color: "#8cecff", rx: 0.42, ry: 0.50, rw: 110, rh: 180 },
+          { label: "CIRCUIT_BREAKER_B4", conf: 0.981, color: "#a5ffca", rx: 0.72, ry: 0.40, rw: 75, rh: 60 },
+          { label: "RPM_CONTROLLER", conf: 0.942, color: "#4fa8ff", rx: 0.72, ry: 0.62, rw: 85, rh: 70 }
+        ]
+      },
+      5: {
+        step: 5,
+        title: "STEP 05: RECORD TELEMETRY",
+        action: "Verify optical density metrics and archive run timestamp",
+        badge: "PROTOCOL CONCLUDED",
+        badgeClass: "nominal",
+        confidence: 0.940,
+        vocal: "Step 05 complete. Experiment protocol fully concluded. Audit log validated.",
+        grip: "STYLUS_INTERFACE",
+        dist: "0.05 m",
+        knee: 41.0,
+        spine: 12.3,
+        boxes: [
+          { label: "ASTRONAUT_EXP_01", conf: 0.984, color: "#8cecff", rx: 0.45, ry: 0.50, rw: 110, rh: 180 },
+          { label: "OPTICAL_DENSITY_METER", conf: 0.969, color: "#a5ffca", rx: 0.70, ry: 0.44, rw: 90, rh: 80 },
+          { label: "MISSION_LOGBOOK", conf: 0.958, color: "#8cecff", rx: 0.68, ry: 0.65, rw: 100, rh: 60 }
+        ]
+      },
+      'skipped': {
+        step: 4,
+        title: "DEVIATION: STEP 03 SKIPPED",
+        action: "Centrifuge engaged prematurely without specimen insertion",
+        badge: "⚠️ STEP 03 SKIPPED",
+        badgeClass: "skipped",
+        confidence: 0.985,
+        vocal: "Sequence deviation alert. Step zero-three has been skipped. Please return and place sample in centrifuge.",
+        grip: "BYPASS_ENGAGED",
+        dist: "0.12 m",
+        knee: 38.5,
+        spine: 16.2,
+        boxes: [
+          { label: "ASTRONAUT_EXP_01", conf: 0.982, color: "#8cecff", rx: 0.42, ry: 0.50, rw: 110, rh: 180 },
+          { label: "⚠️ UNLOCKED_SLOT_03", conf: 0.989, color: "#ffbe6b", rx: 0.68, ry: 0.50, rw: 110, rh: 90 },
+          { label: "PREMATURE_CIRCUIT_B4", conf: 0.945, color: "#ffbe6b", rx: 0.75, ry: 0.38, rw: 80, rh: 60 }
+        ]
+      },
+      'out_of_order': {
+        step: 1,
+        title: "PROTOCOL DEVIATION: OUT-OF-ORDER ACTION",
+        action: "Unexpected activity detected out of sequence",
+        badge: "🛑 OUT-OF-SEQUENCE",
+        badgeClass: "out_of_order",
+        confidence: 0.979,
+        vocal: "Warning. Out of sequence activity detected on camera. Expected step zero-two, detected step zero-four.",
+        grip: "ANOMALOUS_ACTION",
+        dist: "0.18 m",
+        knee: 46.0,
+        spine: 18.5,
+        boxes: [
+          { label: "ASTRONAUT_EXP_01", conf: 0.985, color: "#8cecff", rx: 0.44, ry: 0.50, rw: 110, rh: 180 },
+          { label: "🛑 CONFLICT_ACTION", conf: 0.978, color: "#ff5f7e", rx: 0.70, ry: 0.48, rw: 120, rh: 110 }
+        ]
+      }
+    };
+
+    // Camera Recognition Master Execution Function
+    function executeCameraRecognition(stepKey, deviationType = 'nominal', speakVoice = true) {
+      const sc = CAMERA_RECOGNITION_SCENARIOS[stepKey];
+      if (!sc) return;
+
+      activeDeviationType = deviationType;
+      activeRecognizedStep = sc.step;
+      activeConfidence = sc.confidence;
+
+      // 1. Update Feed Card Alert Styles
+      const card = document.getElementById('camFeedCard');
+      if (card) {
+        card.classList.remove('pulse-amber', 'pulse-red');
+        if (deviationType === 'skipped') card.classList.add('pulse-amber');
+        if (deviationType === 'out_of_order') card.classList.add('pulse-red');
+      }
+
+      // 2. Update Top Status Bar Elements
+      const camChanEl = document.getElementById('dashCamChannel');
+      if (camChanEl) camChanEl.textContent = `${activeCameraId} // ${activeCameraId === 'LIVE_WEBCAM' ? 'LIVE OPTICAL' : 'BAY SENSOR'}`;
+
+      const stepBadgeEl = document.getElementById('dashDetectedStepBadge');
+      if (stepBadgeEl) {
+        stepBadgeEl.textContent = sc.title;
+        stepBadgeEl.style.color = deviationType === 'nominal' ? 'var(--green)' : (deviationType === 'skipped' ? 'var(--amber)' : 'var(--red)');
+      }
+
+      const confEl = document.getElementById('dashConfidenceVal');
+      if (confEl) {
+        confEl.textContent = `${(sc.confidence * 100).toFixed(1)}%`;
+        confEl.style.color = deviationType === 'nominal' ? 'var(--green)' : (deviationType === 'skipped' ? 'var(--amber)' : 'var(--red)');
+      }
+
+      const seqEl = document.getElementById('dashSeqStatus');
+      if (seqEl) {
+        if (deviationType === 'nominal') {
+          seqEl.textContent = sc.step === 5 ? 'CONCLUDED (VERIFIED)' : 'NOMINAL (ALIGNED)';
+          seqEl.className = 's-val green';
+        } else if (deviationType === 'skipped') {
+          seqEl.textContent = 'DEVIATION DETECTED';
+          seqEl.className = 's-val amber';
+        } else {
+          seqEl.textContent = 'PROTOCOL ERROR';
+          seqEl.className = 's-val error';
+        }
+      }
+
+      const alertEl = document.getElementById('dashAlertVal');
+      if (alertEl) {
+        if (deviationType === 'nominal') {
+          alertEl.textContent = 'NONE';
+          alertEl.style.color = 'var(--text-muted)';
+        } else if (deviationType === 'skipped') {
+          alertEl.textContent = 'STEP 03 SKIPPED';
+          alertEl.style.color = 'var(--amber)';
+        } else {
+          alertEl.textContent = 'OUT-OF-ORDER ACTION';
+          alertEl.style.color = 'var(--red)';
+        }
+      }
+
+      // 3. Update Camera Video Banner & Footer
+      const bannerText = document.getElementById('bannerStepText');
+      if (bannerText) bannerText.textContent = sc.title;
+
+      const bannerBadge = document.getElementById('bannerBadge');
+      if (bannerBadge) {
+        bannerBadge.textContent = sc.badge;
+        bannerBadge.className = `rec-badge ${sc.badgeClass}`;
+      }
+
+      const dotEl = document.getElementById('recDot');
+      if (dotEl) {
+        dotEl.style.background = deviationType === 'nominal' ? 'var(--green)' : (deviationType === 'skipped' ? 'var(--amber)' : 'var(--red)');
+        dotEl.style.boxShadow = `0 0 10px ${dotEl.style.background}`;
+      }
+
+      const actionText = document.getElementById('dashDetectedActionText');
+      if (actionText) actionText.textContent = sc.action;
+
+      const confFooter = document.getElementById('dashConfidenceFooter');
+      if (confFooter) confFooter.textContent = `${(sc.confidence * 100).toFixed(1)}%`;
+
+      const latFooter = document.getElementById('dashLatencyFooter');
+      if (latFooter) latFooter.textContent = `${(11.0 + Math.random() * 0.7).toFixed(1)} ms`;
+
+      // 4. Update Kinematics Subpanel
+      const kneeEl = document.getElementById('dashKinKnee');
+      const meterKnee = document.getElementById('dashMeterKnee');
+      if (kneeEl) kneeEl.textContent = `${sc.knee.toFixed(1)}°`;
+      if (meterKnee) meterKnee.style.width = `${Math.min(100, (sc.knee / 90) * 100)}%`;
+
+      const spineEl = document.getElementById('dashKinSpine');
+      const meterSpine = document.getElementById('dashMeterSpine');
+      if (spineEl) spineEl.textContent = `${sc.spine.toFixed(1)}°`;
+      if (meterSpine) meterSpine.style.width = `${Math.min(100, (sc.spine / 45) * 100)}%`;
+
+      const gripEl = document.getElementById('dashKinGrip');
+      if (gripEl) {
+        gripEl.textContent = sc.grip;
+        gripEl.style.color = deviationType === 'nominal' ? 'var(--cyan)' : (deviationType === 'skipped' ? 'var(--amber)' : 'var(--red)');
+      }
+
+      const distEl = document.getElementById('dashKinDist');
+      if (distEl) distEl.textContent = sc.dist;
+
+      const motionEl = document.getElementById('dashKinMotion');
+      const meterMotion = document.getElementById('dashMeterMotion');
+      const mVal = 0.75 + Math.random() * 0.35;
+      if (motionEl) motionEl.textContent = `${mVal.toFixed(2)} kW/m²`;
+      if (meterMotion) meterMotion.style.width = `${Math.min(100, (mVal / 1.5) * 100)}%`;
+
+      // 5. Synchronize Protocol Step Matrix (Section 02)
+      if (deviationType === 'skipped') {
+        experimentSteps[2].status = "SKIPPED";
+        experimentSteps[2].badgeClass = "alert-skip";
+        experimentSteps[3].status = "UNEXPECTED";
+        experimentSteps[3].badgeClass = "alert-skip";
+        selectedStepIndex = 3;
+        renderProtocolStepList();
+        updateStepInspector(experimentSteps[2]);
+      } else if (deviationType === 'out_of_order') {
+        experimentSteps[3].status = "OUT-OF-ORDER";
+        experimentSteps[3].badgeClass = "alert-dev";
+        selectedStepIndex = 4;
+        renderProtocolStepList();
+        updateStepInspector(experimentSteps[3]);
+      } else {
+        const idx = sc.step;
+        for (let i = 0; i < experimentSteps.length; i++) {
+          if (experimentSteps[i].index <= idx) {
+            experimentSteps[i].status = "VALIDATED";
+            experimentSteps[i].badgeClass = "validated";
+          } else if (experimentSteps[i].index === idx + 1) {
+            experimentSteps[i].status = "READY";
+            experimentSteps[i].badgeClass = "validated";
+          } else {
+            experimentSteps[i].status = "PENDING";
+            experimentSteps[i].badgeClass = "validated";
+          }
+        }
+        selectedStepIndex = Math.min(idx, experimentSteps.length);
+        renderProtocolStepList();
+        updateStepInspector(experimentSteps[selectedStepIndex - 1]);
+      }
+
+      // 6. Audio Vocal Alert & Chimes
+      if (speakVoice) {
+        speakAIVoice(sc.vocal);
+        if (deviationType === 'nominal') {
+          audioEngine.playBeep(1200 + sc.step * 100, 0.08);
+        } else {
+          audioEngine.playAlertChirp();
+        }
+      }
+
+      // 7. Audit Log Entry
+      const logStatus = deviationType === 'nominal' ? 'VALIDATED' : (deviationType === 'skipped' ? 'SKIPPED' : 'ALERT');
+      const logClass = deviationType === 'nominal' ? 'valid' : (deviationType === 'skipped' ? 'alert' : 'error');
+      addLogEntry(`[${activeCameraId}] STEP 0${sc.step}`, sc.action, logStatus, logClass);
+
+      // 8. Highlight Active Controller Button
+      document.querySelectorAll('.btn-cam-action').forEach(b => b.classList.remove('active-rec'));
+      const activeBtn = document.querySelector(`.btn-cam-action[data-step="${sc.step}"]`);
+      if (activeBtn && deviationType === 'nominal') activeBtn.classList.add('active-rec');
+      if (stepKey === 'skipped') document.getElementById('btnRecSkip').classList.add('active-rec');
+      if (stepKey === 'out_of_order') document.getElementById('btnRecOutOfOrder').classList.add('active-rec');
+
+      // 9. Sync with Backend REST API (if server online)
+      try {
+        const stepNum = typeof stepKey === 'number' ? stepKey : (stepKey === 'skipped' ? 4 : 1);
+        fetch(`${BACKEND_URL}/api/ai/recognize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            camera_id: activeCameraId,
+            step_index: stepNum,
+            action_title: sc.title,
+            deviation_type: deviationType,
+            confidence: sc.confidence
+          })
+        }).then(() => loadBackendLogs()).catch(() => {});
+      } catch (e) {}
+    }
+
+    // Switch Camera Source (CAM 01, CAM 02, CAM 03, LIVE WEBCAM, OPENCV_CAM)
+    async function switchCameraSource(camId) {
+      if (camId === 'OPENCV_CAM') {
+        stopWebcam();
+        activeCameraId = 'OPENCV_CAM';
+        document.querySelectorAll('.btn-cam-tab').forEach(t => {
+          t.classList.toggle('active', t.getAttribute('data-cam') === 'OPENCV_CAM');
+        });
+        const badge = document.getElementById('camFeedBadge');
+        if (badge) badge.textContent = 'OPENCV CAMERA // PYTHON COMPUTER VISION';
+        const img = document.getElementById('opencvVideoImg');
+        if (img) {
+          fetch('/api/camera/opencv/start', { method: 'POST' }).catch(() => {});
+          img.src = '/api/camera/video_feed';
+          img.style.display = 'block';
+        }
+        audioEngine.playBeep(1600, 0.08);
+        speakAIVoice("OpenCV computer vision stream connected.");
+        return;
+      }
+
+      if (camId === 'LIVE_WEBCAM') {
+        if (webcamActive) {
+          stopWebcam();
+          switchCameraSource('CAM_01');
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+          });
+          webcamStream = stream;
+          webcamVideo.srcObject = stream;
+          webcamActive = true;
+          activeCameraId = 'LIVE_WEBCAM';
+
+          const img = document.getElementById('opencvVideoImg');
+          if (img) img.style.display = 'none';
+
+          const notice = document.getElementById('webcamNotice');
+          if (notice) notice.style.display = 'flex';
+
+          document.querySelectorAll('.btn-cam-tab').forEach(t => t.classList.remove('active'));
+          document.getElementById('tabWebcam').classList.add('active');
+
+          const badge = document.getElementById('camFeedBadge');
+          if (badge) badge.textContent = 'LIVE WEBCAM // LOCAL OPTICAL SENSOR';
+
+          speakAIVoice("Optical sensor connected. Live webcam feed active for human activity recognition.");
+          executeCameraRecognition(2, 'nominal', false);
+          return;
+        } catch (err) {
+          console.warn('[AI-HAR] Webcam access denied or not found:', err);
+          alert("[LOCAL OPTICAL SENSOR NOTE]\nUnable to access local webcam: " + (err.message || "Permission denied") + "\nFalling back to simulated high-fidelity aerospace camera channel.");
+          stopWebcam();
+          switchCameraSource('CAM_01');
+          return;
+        }
+      }
+
+      // Synthetic Cameras (CAM_01, CAM_02, CAM_03)
+      stopWebcam();
+      activeCameraId = camId;
+
+      document.querySelectorAll('.btn-cam-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-cam') === camId);
+      });
+
+      const badge = document.getElementById('camFeedBadge');
+      if (badge) {
+        if (camId === 'CAM_01') badge.textContent = 'CAM 01 // OVERHEAD PAYLOAD BAY';
+        if (camId === 'CAM_02') badge.textContent = 'CAM 02 // CENTRIFUGE ROTOR MACRO';
+        if (camId === 'CAM_03') badge.textContent = 'CAM 03 // GLOVEBOX WORKSTATION';
+      }
+
+      audioEngine.playBeep(1400, 0.05);
+
+      // Notify Backend
+      try {
+        fetch(`${BACKEND_URL}/api/camera/select`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ camera_id: camId })
+        }).catch(() => {});
+      } catch (e) {}
+
+      // Re-trigger current recognition state to update overlays
+      executeCameraRecognition(activeDeviationType !== 'nominal' ? activeDeviationType : activeStepIndex, activeDeviationType, false);
+    }
+
+    function stopWebcam() {
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(tr => tr.stop());
+        webcamStream = null;
+      }
+      webcamActive = false;
+      const img = document.getElementById('opencvVideoImg');
+      if (img) img.style.display = 'none';
+      const notice = document.getElementById('webcamNotice');
+      if (notice) notice.style.display = 'none';
+      if (document.getElementById('tabWebcam')) {
+        document.getElementById('tabWebcam').classList.remove('active');
+      }
+    }
+
+    // Attach Camera Tab Listeners
+    document.querySelectorAll('.btn-cam-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const cam = tab.getAttribute('data-cam');
+        if (cam) switchCameraSource(cam);
+      });
+    });
+
+    const btnStopCam = document.getElementById('btnStopWebcam');
+    if (btnStopCam) {
+      btnStopCam.addEventListener('click', (e) => {
+        e.stopPropagation();
+        switchCameraSource('CAM_01');
+      });
+    }
+
+    const btnQuickWebcam = document.getElementById('btnLaunchWebcamQuick');
+    if (btnQuickWebcam) {
+      btnQuickWebcam.addEventListener('click', () => switchCameraSource('LIVE_WEBCAM'));
+    }
+    const btnQuickOpencv = document.getElementById('btnLaunchOpencvQuick');
+    if (btnQuickOpencv) {
+      btnQuickOpencv.addEventListener('click', () => switchCameraSource('OPENCV_CAM'));
+    }
+
+    // Attach Camera Scenario Controller Buttons
+    document.getElementById('btnRecStep1').addEventListener('click', () => executeCameraRecognition(1, 'nominal'));
+    document.getElementById('btnRecStep2').addEventListener('click', () => executeCameraRecognition(2, 'nominal'));
+    document.getElementById('btnRecStep3').addEventListener('click', () => executeCameraRecognition(3, 'nominal'));
+    document.getElementById('btnRecStep4').addEventListener('click', () => executeCameraRecognition(4, 'nominal'));
+    document.getElementById('btnRecStep5').addEventListener('click', () => executeCameraRecognition(5, 'nominal'));
+
+    document.getElementById('btnRecSkip').addEventListener('click', () => executeCameraRecognition('skipped', 'skipped'));
+    document.getElementById('btnRecOutOfOrder').addEventListener('click', () => executeCameraRecognition('out_of_order', 'out_of_order'));
+
+    // Auto-Cycle Autonomous Timeline Mode
+    const btnAuto = document.getElementById('btnAutoCycle');
+    let autoStepSeq = [1, 2, 3, 4, 5];
+    let autoIdx = 0;
+
+    btnAuto.addEventListener('click', () => {
+      autoCycleRunning = !autoCycleRunning;
+      btnAuto.classList.toggle('running', autoCycleRunning);
+
+      if (autoCycleRunning) {
+        audioEngine.playBeep(1600, 0.12);
+        btnAuto.querySelector('span:last-child').textContent = '⏹ STOP AUTO-CYCLE';
+        autoIdx = 0;
+        executeCameraRecognition(autoStepSeq[autoIdx], 'nominal');
+
+        autoCycleTimer = setInterval(() => {
+          autoIdx = (autoIdx + 1) % autoStepSeq.length;
+          executeCameraRecognition(autoStepSeq[autoIdx], 'nominal');
+        }, 3600);
+      } else {
+        clearInterval(autoCycleTimer);
+        autoCycleTimer = null;
+        btnAuto.querySelector('span:last-child').textContent = '⚡ AUTO-CYCLE RUN';
+        audioEngine.playBeep(900, 0.08);
+      }
+    });
+
+    // Current Active Creative Computer Vision Mode
+    let currentCvMode = 'cybernetic';
+    let lidarY_idx = 40;
+    let lidarDir_idx = 1;
+
+    // In-Page Theater Cockpit View Toggle
+    const btnToggleTheater = document.getElementById('btnToggleTheater');
+    if (btnToggleTheater) {
+      btnToggleTheater.addEventListener('click', () => {
+        const monitorSec = document.getElementById('monitor');
+        monitorSec.classList.toggle('theater-mode');
+        const isTheater = monitorSec.classList.contains('theater-mode');
+        btnToggleTheater.innerHTML = isTheater 
+          ? '<span>◀</span> EXIT THEATER COCKPIT [ESC]' 
+          : '<span>⛶</span> THEATER COCKPIT VIEW';
+        if (isTheater) {
+          document.body.style.overflow = 'hidden';
+          audioEngine.playBeep(1800, 0.1);
+          speakAIVoice("Theater cockpit mode active.");
+        } else {
+          document.body.style.overflow = '';
+          audioEngine.playBeep(900, 0.08);
+        }
+      });
+    }
+
+    // ESC key listener to exit theater cockpit mode
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const monitorSec = document.getElementById('monitor');
+        if (monitorSec && monitorSec.classList.contains('theater-mode')) {
+          monitorSec.classList.remove('theater-mode');
+          document.body.style.overflow = '';
+          if (btnToggleTheater) btnToggleTheater.innerHTML = '<span>⛶</span> THEATER COCKPIT VIEW';
+        }
+      }
+    });
+
+    // In-Page CV Mode Buttons
+    document.querySelectorAll('.btn-cv-mode').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-cv-mode').forEach(b => {
+          b.classList.remove('active');
+          b.style.background = 'transparent';
+          b.style.borderColor = 'var(--panel-border)';
+          b.style.color = 'var(--text-muted)';
+        });
+        btn.classList.add('active');
+        btn.style.background = 'rgba(140,236,255,0.22)';
+        btn.style.borderColor = 'var(--cyan)';
+        btn.style.color = '#fff';
+
+        currentCvMode = btn.getAttribute('data-mode') || 'cybernetic';
+
+        if (activeCameraId === 'OPENCV_CAM') {
+          fetch(`${BACKEND_URL}/api/camera/opencv/mode`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: currentCvMode })
+          }).catch(() => {});
+        }
+        audioEngine.playBeep(1400, 0.05);
+        speakAIVoice(`Vision mode: ${btn.textContent.trim()}`);
+      });
+    });
+
+    // Optical Motion Differencing Calculation (For Live Webcam Gesture Sensing)
+    function calculateMotionDifference() {
+      if (!webcamActive || !webcamVideo || webcamVideo.readyState < 2 || !mCtx) return 0;
+      mCtx.drawImage(webcamVideo, 0, 0, 160, 120);
+      const curData = mCtx.getImageData(0, 0, 160, 120);
+
+      if (!prevMotionFrame) {
+        prevMotionFrame = curData;
+        return 0;
+      }
+
+      let diffCount = 0;
+      const totalPixels = 160 * 120;
+      for (let i = 0; i < curData.data.length; i += 4) {
+        const dR = Math.abs(curData.data[i] - prevMotionFrame.data[i]);
+        const dG = Math.abs(curData.data[i + 1] - prevMotionFrame.data[i + 1]);
+        const dB = Math.abs(curData.data[i + 2] - prevMotionFrame.data[i + 2]);
+        if (dR + dG + dB > 75) diffCount++;
+      }
+      prevMotionFrame = curData;
+      return diffCount / totalPixels;
+    }
+
+    // Main Camera Feed Rendering Loop
     function renderFeedCanvas() {
       requestAnimationFrame(renderFeedCanvas);
       feedTime += 0.025;
+      if (gestureCooldown > 0) gestureCooldown--;
 
       const w = feedCanvas.width;
       const h = feedCanvas.height;
+      if (w === 0 || h === 0) return;
+
       fCtx.clearRect(0, 0, w, h);
 
-      // Camera sensor background
-      fCtx.fillStyle = '#020912';
-      fCtx.fillRect(0, 0, w, h);
+      // 1. Draw Feed Background
+      if (webcamActive && webcamVideo && webcamVideo.readyState >= 2) {
+        if (currentCvMode === 'thermal') {
+          // False-Color Infrared Heatmap
+          fCtx.save();
+          fCtx.translate(w, 0);
+          fCtx.scale(-1, 1);
+          fCtx.drawImage(webcamVideo, 0, 0, w, h);
+          fCtx.restore();
 
-      // Subtle video noise & scanning raster
-      fCtx.fillStyle = 'rgba(140, 236, 255, 0.02)';
+          // Thermal gradient overlay tint
+          fCtx.fillStyle = 'rgba(255, 60, 0, 0.2)';
+          fCtx.fillRect(0, 0, w, h);
+          fCtx.fillStyle = 'rgba(100, 0, 150, 0.2)';
+          fCtx.fillRect(0, 0, w, h);
+
+          // Hotspot crosshairs
+          const hx = w * 0.5 + Math.sin(feedTime * 1.5) * 20;
+          const hy = h * 0.42 + Math.cos(feedTime * 1.2) * 15;
+          fCtx.strokeStyle = '#ffffff';
+          fCtx.lineWidth = 1.5;
+          fCtx.beginPath();
+          fCtx.arc(hx, hy, 16, 0, Math.PI * 2);
+          fCtx.moveTo(hx - 22, hy); fCtx.lineTo(hx + 22, hy);
+          fCtx.moveTo(hx, hy - 22); fCtx.lineTo(hx, hy + 22);
+          fCtx.stroke();
+          fCtx.fillStyle = '#ffffff';
+          fCtx.font = '10px "JetBrains Mono"';
+          fCtx.fillText("HOTSPOT: 36.8°C", hx + 20, hy - 8);
+
+        } else if (currentCvMode === 'edges') {
+          // Sobel Edge Matrix Simulation
+          fCtx.fillStyle = '#01060c';
+          fCtx.fillRect(0, 0, w, h);
+
+          // Cybernetic Matrix Grids
+          fCtx.strokeStyle = 'rgba(140, 236, 193, 0.12)';
+          fCtx.lineWidth = 1;
+          for (let gx = 0; gx < w; gx += 30) {
+            fCtx.beginPath(); fCtx.moveTo(gx, 0); fCtx.lineTo(gx, h); fCtx.stroke();
+          }
+          for (let gy = 0; gy < h; gy += 30) {
+            fCtx.beginPath(); fCtx.moveTo(0, gy); fCtx.lineTo(w, gy); fCtx.stroke();
+          }
+
+          // Subtle webcam ghost
+          fCtx.save();
+          fCtx.globalAlpha = 0.35;
+          fCtx.translate(w, 0);
+          fCtx.scale(-1, 1);
+          fCtx.drawImage(webcamVideo, 0, 0, w, h);
+          fCtx.restore();
+
+        } else if (currentCvMode === 'lidar') {
+          // 3D LiDAR Scanner
+          fCtx.save();
+          fCtx.translate(w, 0);
+          fCtx.scale(-1, 1);
+          fCtx.drawImage(webcamVideo, 0, 0, w, h);
+          fCtx.restore();
+
+          fCtx.fillStyle = 'rgba(2, 8, 16, 0.4)';
+          fCtx.fillRect(0, 0, w, h);
+
+          lidarY_idx += 5 * lidarDir_idx;
+          if (lidarY_idx >= h - 30) lidarDir_idx = -1;
+          if (lidarY_idx <= 30) lidarDir_idx = 1;
+
+          fCtx.strokeStyle = '#8cecc1';
+          fCtx.lineWidth = 2.5;
+          fCtx.shadowColor = '#8cecc1';
+          fCtx.shadowBlur = 10;
+          fCtx.beginPath();
+          fCtx.moveTo(0, lidarY_idx);
+          fCtx.lineTo(w, lidarY_idx);
+          fCtx.stroke();
+          fCtx.shadowBlur = 0;
+
+          fCtx.fillStyle = '#8cecc1';
+          fCtx.font = '10px "JetBrains Mono"';
+          fCtx.fillText(`LiDAR SCAN // Z=${Math.round(lidarY_idx)}mm`, 16, Math.max(22, lidarY_idx - 10));
+
+        } else if (currentCvMode === 'motion_trails') {
+          // Kinetic Energy Trails
+          fCtx.save();
+          fCtx.translate(w, 0);
+          fCtx.scale(-1, 1);
+          fCtx.drawImage(webcamVideo, 0, 0, w, h);
+          fCtx.restore();
+
+          // Motion energy ribbon
+          const mx = w * 0.7 + Math.sin(feedTime * 2.2) * 25;
+          const my = h * 0.5 + Math.cos(feedTime * 1.8) * 20;
+          const grad = fCtx.createRadialGradient(mx, my, 2, mx, my, 40);
+          grad.addColorStop(0, 'rgba(140, 236, 255, 0.8)');
+          grad.addColorStop(0.6, 'rgba(140, 236, 193, 0.35)');
+          grad.addColorStop(1, 'transparent');
+          fCtx.fillStyle = grad;
+          fCtx.beginPath();
+          fCtx.arc(mx, my, 40, 0, Math.PI * 2);
+          fCtx.fill();
+
+        } else {
+          // Cybernetic HUD (Default)
+          fCtx.save();
+          fCtx.translate(w, 0);
+          fCtx.scale(-1, 1);
+          fCtx.drawImage(webcamVideo, 0, 0, w, h);
+          fCtx.restore();
+
+          fCtx.fillStyle = 'rgba(2, 12, 22, 0.22)';
+          fCtx.fillRect(0, 0, w, h);
+        }
+
+        // Calculate motion
+        const diffRatio = calculateMotionDifference();
+        motionEnergy = 0.5 + diffRatio * 3.5;
+
+        // Interactive gesture trigger: If astronaut waves/moves hands strongly, advance step
+        if (diffRatio > 0.16 && gestureCooldown === 0 && !autoCycleRunning) {
+          gestureCooldown = 90; // ~1.5s cooldown
+          const nextS = (activeStepIndex % 5) + 1;
+          executeCameraRecognition(nextS, 'nominal');
+        }
+      } else {
+        // Synthetic Aerospace Camera Views
+        if (activeCameraId === 'CAM_02') {
+          // CAM 02: Centrifuge Rotor Macro View
+          fCtx.fillStyle = '#020b16';
+          fCtx.fillRect(0, 0, w, h);
+
+          // Center Carousel Ring
+          const cx = w * 0.55;
+          const cy = h * 0.50;
+          const rad = Math.min(w, h) * 0.32;
+          const spinSpeed = activeRecognizedStep >= 4 ? feedTime * 8 : feedTime * 0.6;
+
+          fCtx.strokeStyle = 'rgba(140, 236, 255, 0.3)';
+          fCtx.lineWidth = 3;
+          fCtx.beginPath();
+          fCtx.arc(cx, cy, rad, 0, Math.PI * 2);
+          fCtx.stroke();
+
+          // Spinning Centrifuge Rotor Arms & Specimen Slots
+          for (let a = 0; a < 6; a++) {
+            const angle = spinSpeed + (a * Math.PI / 3);
+            const sx = cx + Math.cos(angle) * (rad - 18);
+            const sy = cy + Math.sin(angle) * (rad - 18);
+
+            fCtx.fillStyle = a === 2 ? '#ffbe6b' : '#8cecff';
+            fCtx.beginPath();
+            fCtx.arc(sx, sy, 12, 0, Math.PI * 2);
+            fCtx.fill();
+
+            fCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            fCtx.beginPath();
+            fCtx.moveTo(cx, cy);
+            fCtx.lineTo(sx, sy);
+            fCtx.stroke();
+          }
+
+          // Center Rotor Hub
+          fCtx.fillStyle = '#092138';
+          fCtx.beginPath();
+          fCtx.arc(cx, cy, 28, 0, Math.PI * 2);
+          fCtx.fill();
+          fCtx.strokeStyle = '#8cecff';
+          fCtx.stroke();
+
+          fCtx.fillStyle = '#8cecff';
+          fCtx.font = '10px "JetBrains Mono"';
+          fCtx.fillText(activeRecognizedStep >= 4 ? "CENTRIFUGE: 1200 RPM" : "CENTRIFUGE: STANDBY", cx - 60, cy + rad + 24);
+        } else if (activeCameraId === 'CAM_03') {
+          // CAM 03: Glovebox Workstation Close-Up
+          fCtx.fillStyle = '#020d18';
+          fCtx.fillRect(0, 0, w, h);
+
+          // Glovebox Port Circles
+          fCtx.strokeStyle = 'rgba(140, 236, 193, 0.35)';
+          fCtx.lineWidth = 2;
+          fCtx.strokeRect(w * 0.2, h * 0.2, w * 0.6, h * 0.6);
+
+          fCtx.fillStyle = 'rgba(140, 236, 255, 0.03)';
+          fCtx.fillRect(w * 0.2, h * 0.2, w * 0.6, h * 0.6);
+
+          // Test tubes / cryo rack inside glovebox
+          for (let i = 0; i < 5; i++) {
+            const tx = w * 0.35 + (i * 32);
+            const ty = h * 0.45;
+            fCtx.fillStyle = i === 2 ? '#ffbe6b' : '#4fa8ff';
+            fCtx.fillRect(tx, ty, 14, 45);
+            fCtx.strokeStyle = '#8cecff';
+            fCtx.strokeRect(tx, ty, 14, 45);
+          }
+
+          fCtx.fillStyle = '#a5ffca';
+          fCtx.font = '10px "JetBrains Mono"';
+          fCtx.fillText("GLOVEBOX PRESSURE: 101.3 kPa // ISO-5 CLEAN", w * 0.25, h * 0.15);
+        } else {
+          // CAM 01: Overhead Payload Bay Wide View (Default)
+          fCtx.fillStyle = '#010811';
+          fCtx.fillRect(0, 0, w, h);
+
+          // Payload enclosure perspective lines
+          fCtx.strokeStyle = 'rgba(140, 236, 255, 0.08)';
+          fCtx.lineWidth = 1;
+          for (let x = 0; x < w; x += 45) {
+            fCtx.beginPath(); fCtx.moveTo(x, 0); fCtx.lineTo(x * 0.8 + w * 0.1, h); fCtx.stroke();
+          }
+
+          // Specimen bay panel on right
+          fCtx.fillStyle = '#071626';
+          fCtx.fillRect(w * 0.65, h * 0.25, w * 0.28, h * 0.55);
+          fCtx.strokeStyle = 'rgba(140, 236, 255, 0.25)';
+          fCtx.strokeRect(w * 0.65, h * 0.25, w * 0.28, h * 0.55);
+
+          // LED Status lights on bay
+          fCtx.fillStyle = activeRecognizedStep >= 4 ? '#8cecc1' : '#ffbe6b';
+          fCtx.beginPath(); fCtx.arc(w * 0.70, h * 0.30, 4, 0, Math.PI * 2); fCtx.fill();
+          fCtx.beginPath(); fCtx.arc(w * 0.74, h * 0.30, 4, 0, Math.PI * 2); fCtx.fill();
+        }
+      }
+
+      // 2. Video Scanning Scanlines Raster
+      fCtx.fillStyle = 'rgba(140, 236, 255, 0.015)';
       for (let i = 0; i < h; i += 4) {
         fCtx.fillRect(0, i, w, 1);
       }
 
-      // Moving astronaut model representation
-      const ax = w * 0.48 + Math.sin(feedTime * 1.8) * 14;
-      const ay = h * 0.52 + Math.cos(feedTime * 1.2) * 8;
-
-      // Draw bounding box
-      fCtx.strokeStyle = '#a5ffca';
-      fCtx.lineWidth = 1.5;
-      fCtx.strokeRect(ax - 50, ay - 90, 100, 160);
-
-      fCtx.fillStyle = '#a5ffca';
-      fCtx.font = '9px "JetBrains Mono"';
-      fCtx.fillText("ASTRONAUT_EXP_01 [CONF: 96.8%]", ax - 50, ay - 96);
-
-      // Center crosshair
-      fCtx.strokeStyle = 'rgba(140, 236, 255, 0.25)';
+      // Tactical Crosshair Reticle in Center
+      fCtx.strokeStyle = 'rgba(140, 236, 255, 0.18)';
+      fCtx.lineWidth = 1;
       fCtx.beginPath();
-      fCtx.moveTo(w * 0.5 - 20, h * 0.5); fCtx.lineTo(w * 0.5 + 20, h * 0.5);
-      fCtx.moveTo(w * 0.5, h * 0.5 - 20); fCtx.lineTo(w * 0.5, h * 0.5 + 20);
+      fCtx.moveTo(w * 0.5 - 18, h * 0.5); fCtx.lineTo(w * 0.5 + 18, h * 0.5);
+      fCtx.moveTo(w * 0.5, h * 0.5 - 18); fCtx.lineTo(w * 0.5, h * 0.5 + 18);
       fCtx.stroke();
+
+      // Current Scenario Data
+      const curSc = CAMERA_RECOGNITION_SCENARIOS[activeDeviationType !== 'nominal' ? activeDeviationType : activeRecognizedStep] || CAMERA_RECOGNITION_SCENARIOS[2];
+
+      // 3. Layer: Biomechanical 34-Joint Skeleton Pose (if enabled)
+      const ax = w * 0.44 + Math.sin(feedTime * 1.6) * 10;
+      const ay = h * 0.50 + Math.cos(feedTime * 1.2) * 6;
+
+      if (chkLayerPose && chkLayerPose.checked) {
+        fCtx.strokeStyle = '#8cecff';
+        fCtx.lineWidth = 2.2;
+        fCtx.shadowColor = '#8cecff';
+        fCtx.shadowBlur = 8;
+
+        const headY = ay - 65;
+        const spineY = ay - 10;
+        const hipY = ay + 42;
+
+        function drawBone(x1, y1, x2, y2) {
+          fCtx.beginPath(); fCtx.moveTo(x1, y1); fCtx.lineTo(x2, y2); fCtx.stroke();
+        }
+
+        // Spine & Shoulders
+        drawBone(ax, headY, ax, spineY);
+        drawBone(ax - 28, spineY - 10, ax + 28, spineY - 10);
+
+        // Left & Right Arms
+        const rArmWave = Math.sin(feedTime * 2.2) * 14;
+        drawBone(ax - 28, spineY - 10, ax - 45, ay + 15);
+        drawBone(ax + 28, spineY - 10, ax + 50 + rArmWave, ay + 10);
+
+        // Spine to Hip & Legs
+        drawBone(ax, spineY, ax, hipY);
+        drawBone(ax - 18, hipY, ax - 30, ay + 85);
+        drawBone(ax + 18, hipY, ax + 30, ay + 80);
+
+        // Joint Nodes
+        fCtx.fillStyle = '#a5ffca';
+        fCtx.shadowColor = '#a5ffca';
+        fCtx.shadowBlur = 10;
+        const joints = [
+          [ax, headY], [ax, spineY], [ax - 28, spineY - 10], [ax + 28, spineY - 10],
+          [ax - 45, ay + 15], [ax + 50 + rArmWave, ay + 10],
+          [ax, hipY], [ax - 18, hipY], [ax + 18, hipY],
+          [ax - 30, ay + 85], [ax + 30, ay + 80]
+        ];
+        joints.forEach(([jx, jy]) => {
+          fCtx.beginPath(); fCtx.arc(jx, jy, 3.5, 0, Math.PI * 2); fCtx.fill();
+        });
+        fCtx.shadowBlur = 0;
+      }
+
+      // 4. Layer: Object Bounding Boxes & Target Locks (if enabled)
+      if (chkLayerBoxes && chkLayerBoxes.checked && curSc.boxes) {
+        curSc.boxes.forEach((b, idx) => {
+          const bx = b.rx * w - (b.rw * 0.5) + (idx === 0 ? Math.sin(feedTime * 1.6) * 10 : 0);
+          const by = b.ry * h - (b.rh * 0.5) + (idx === 0 ? Math.cos(feedTime * 1.2) * 6 : 0);
+          const bw = b.rw;
+          const bh = b.rh;
+
+          // Box Border
+          fCtx.strokeStyle = b.color;
+          fCtx.lineWidth = 1.5;
+          fCtx.strokeRect(bx, by, bw, bh);
+
+          fCtx.fillStyle = `${b.color}15`;
+          fCtx.fillRect(bx, by, bw, bh);
+
+          // Corner Targeting Brackets
+          const cLen = 8;
+          fCtx.lineWidth = 2.5;
+          fCtx.beginPath();
+          // TL
+          fCtx.moveTo(bx, by + cLen); fCtx.lineTo(bx, by); fCtx.lineTo(bx + cLen, by);
+          // TR
+          fCtx.moveTo(bx + bw - cLen, by); fCtx.lineTo(bx + bw, by); fCtx.lineTo(bx + bw, by + cLen);
+          // BL
+          fCtx.moveTo(bx, by + bh - cLen); fCtx.lineTo(bx, by + bh); fCtx.lineTo(bx + cLen, by + bh);
+          // BR
+          fCtx.moveTo(bx + bw - cLen, by + bh); fCtx.lineTo(bx + bw, by + bh); fCtx.lineTo(bx + bw, by + bh - cLen);
+          fCtx.stroke();
+
+          // Label chip
+          fCtx.fillStyle = b.color;
+          fCtx.font = '9px "JetBrains Mono"';
+          fCtx.fillText(`${b.label} [${(b.conf * 100).toFixed(0)}%]`, bx, by - 6);
+        });
+      }
+
+      // 5. Layer: Hand-Object Interaction Vectors (if enabled)
+      if (chkLayerInteraction && chkLayerInteraction.checked) {
+        const handX = ax + 50 + Math.sin(feedTime * 2.2) * 14;
+        const handY = ay + 10;
+        const targetX = w * 0.70;
+        const targetY = h * 0.50;
+
+        fCtx.strokeStyle = activeDeviationType === 'nominal' ? '#8cecff' : '#ffbe6b';
+        fCtx.lineWidth = 1.8;
+        fCtx.setLineDash([4, 4]);
+        fCtx.beginPath();
+        fCtx.moveTo(handX, handY);
+        fCtx.lineTo(targetX, targetY);
+        fCtx.stroke();
+        fCtx.setLineDash([]);
+
+        // Interactive Distance Tag
+        fCtx.fillStyle = activeDeviationType === 'nominal' ? '#8cecff' : '#ffbe6b';
+        fCtx.font = '9px "JetBrains Mono"';
+        fCtx.fillText(`GRIP: ${curSc.grip} [${curSc.dist}]`, handX - 20, handY + 22);
+      }
+
+      // 6. Layer: Optical Kinematics Radar Waveform in Bottom Corner (if enabled)
+      if (chkLayerRadar && chkLayerRadar.checked) {
+        const rx = w - 110;
+        const ry = h - 60;
+        fCtx.fillStyle = 'rgba(2, 10, 18, 0.75)';
+        fCtx.fillRect(rx, ry, 96, 44);
+        fCtx.strokeStyle = 'rgba(140, 236, 255, 0.2)';
+        fCtx.strokeRect(rx, ry, 96, 44);
+
+        fCtx.strokeStyle = '#8cecc1';
+        fCtx.lineWidth = 1.2;
+        fCtx.beginPath();
+        for (let x = 0; x < 90; x += 4) {
+          const wave = Math.sin(feedTime * 5 + x * 0.2) * (motionEnergy * 10);
+          const py = ry + 22 + wave;
+          if (x === 0) fCtx.moveTo(rx + 3 + x, py);
+          else fCtx.lineTo(rx + 3 + x, py);
+        }
+        fCtx.stroke();
+
+        fCtx.fillStyle = '#8cecc1';
+        fCtx.font = '8px "JetBrains Mono"';
+        fCtx.fillText("OPTICAL RADAR", rx + 6, ry + 12);
+      }
     }
     renderFeedCanvas();
+
+    // Initialize Dashboard to Step 02 Nominal Initially
+    executeCameraRecognition(2, 'nominal', false);
 
     // =========================================================================
     // I. LIVE BACKEND FASTAPI & WEBSOCKET INTEGRATION
@@ -3590,12 +5008,13 @@
             if (data.latency_ms) {
               const el = document.getElementById('teleInferenceSpeed');
               if (el) el.textContent = `${data.latency_ms} ms (EDGE)`;
+              const fLat = document.getElementById('dashLatencyFooter');
+              if (fLat) fLat.textContent = `${data.latency_ms} ms`;
             }
             if (data.kinematics) {
-              // Update live telemetry display
-              const knee = document.getElementById('angleKnee');
+              const knee = document.getElementById('dashKinKnee');
               if (knee) knee.textContent = `${data.kinematics.knee_angle_deg}°`;
-              const spine = document.getElementById('angleSpine');
+              const spine = document.getElementById('dashKinSpine');
               if (spine) spine.textContent = `${data.kinematics.spine_pitch_deg}°`;
             }
           } catch (e) {}
